@@ -1,0 +1,58 @@
+# Python bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Distribution / packaging
+dist/
+build/
+*.egg-info/
+
+# Virtual environments
+venv/
+env/
+myenv/
+.env/
+.venv/
+
+# IDE settings
+.idea/
+.vscode/
+*.sublime-project
+*.sublime-workspace
+.cursor/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+data/quotes.db
+
+# Logs
+*.log
+logs/
+
+# Local configuration
+.env
+.env.local
+config.py
+local_settings.py
+
+# OS specific files
+.DS_Store
+Thumbs.db
+.directory
+desktop.ini
+
+# Generated files
+/site
+.coverage
+htmlcov/
+.pytest_cache/
+.mypy_cache/
+
+# Test data
+test_data/
