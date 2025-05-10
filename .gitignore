@@ -56,3 +56,8 @@ htmlcov/
 
 # Test data
 test_data/
+
+# Personal notes files
+project_notes.md
+notes.md
+TODO.md
