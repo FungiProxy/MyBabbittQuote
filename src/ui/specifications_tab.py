@@ -206,6 +206,11 @@ class SpecificationsTab(QWidget):
     def add_continuous_measurement_specs(self):
         """Add specifications for Continuous Measurement Transmitters."""
         # Basic placeholder - would be filled with relevant controls
+        
+        # Add a note about available technologies
+        note_label = QLabel("<b>Note:</b> Only Guided Wave Radar technology is currently available.")
+        self.specs_layout.addWidget(note_label)
+        
         range_group = QGroupBox("Measurement Range")
         range_layout = QFormLayout()
         
@@ -225,9 +230,6 @@ class SpecificationsTab(QWidget):
         
         range_group.setLayout(range_layout)
         self.specs_layout.addWidget(range_group)
-        
-        # Add more relevant controls for continuous measurement
-        # ...
     
     def add_multi_point_specs(self):
         """Add specifications for Multi-Point Level Switches."""

@@ -100,7 +100,7 @@ class ProductTab(QWidget):
         if index == 0:  # Point Level Switches
             models = ["RF Admittance", "Capacitance", "Vibration"]
         elif index == 1:  # Continuous Measurement
-            models = ["Ultrasonic", "Radar", "Guided Wave Radar"]
+            models = ["Guided Wave Radar"]  # Removed Ultrasonic and Radar as they're no longer offered
         elif index == 2:  # Multi-Point Level Switches
             models = ["Float Type", "Magnetostrictive", "Resistive Chain"]
         elif index == 3:  # Magnetic Level Indicators
