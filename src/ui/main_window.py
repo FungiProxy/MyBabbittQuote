@@ -95,14 +95,18 @@ class MainWindow(QMainWindow):
         else:
             self.check_count = 1
     
-    def on_product_selected(self, category, model):
+    @Slot(str)
+    def on_product_selected(self, model):
         """Handle product selection."""
-        print(f"Product selected: {category} - {model}")
+        print(f"Product selected: {model}")
+        # Get full product info including derived category
+        product_info = self.product_tab.get_selected_product()
+        category = product_info["category"]
+        
         # Update specifications tab with product info
         self.specifications_tab.update_for_product(category, model)
         
         # Update quote tab with product info
-        product_info = self.product_tab.get_selected_product()
         self.quote_tab.update_product_info(product_info)
     
     def on_specs_updated(self, specs):

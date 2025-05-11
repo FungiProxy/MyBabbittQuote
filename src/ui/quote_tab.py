@@ -45,9 +45,9 @@ class QuoteTab(QWidget):
         self.product_summary.setStyleSheet("font-weight: bold;")
         summary_layout.addWidget(self.product_summary)
         
-        # Specifications summary
+        # Configuration summary
         self.specs_table = QTableWidget(0, 2)
-        self.specs_table.setHorizontalHeaderLabels(["Specification", "Value"])
+        self.specs_table.setHorizontalHeaderLabels(["Configuration Item", "Value"])
         self.specs_table.horizontalHeader().setSectionResizeMode(0, QHeaderView.Stretch)
         self.specs_table.horizontalHeader().setSectionResizeMode(1, QHeaderView.Stretch)
         self.specs_table.verticalHeader().setVisible(False)
@@ -113,12 +113,11 @@ class QuoteTab(QWidget):
         self.product_info = product_info
         
         # Update product summary label
-        category = product_info.get("category", "")
         model = product_info.get("model", "")
         application = product_info.get("application", "")
         
-        if category and model:
-            self.product_summary.setText(f"<b>{model}</b> ({category})<br>Application: {application}")
+        if model:
+            self.product_summary.setText(f"<b>{model}</b><br>Application: {application}")
         else:
             self.product_summary.setText("No product selected")
         
@@ -132,62 +131,156 @@ class QuoteTab(QWidget):
         # Clear existing specs
         self.specs_table.setRowCount(0)
         
-        # Add specs to table
-        row = 0
-        for name, value in specs.items():
-            # Convert internal name to display name
-            display_name = name.replace("_", " ").title()
+        # Group configuration items by category
+        config_categories = {
+            "Essential Properties": ["voltage", "material", "material_type", "viscosity"],
+            "Dimensions": ["probe_length", "indicator_length", "cable_length"],
+            "Connections": ["connection", "mounting"],
+            "Material Options": ["exotic_metals", "oring"],
+            "Housing": ["housing"],
+            "Additional Features": ["high_temp", "extended_probe", "remote_display", "output_type"]
+        }
+        
+        # Add category headers and specs in each category
+        for category, spec_keys in config_categories.items():
+            category_added = False
             
-            # Format value for display
-            if isinstance(value, bool):
-                display_value = "Yes" if value else "No"
-            else:
-                display_value = str(value)
-            
-            # Add to table
-            self.specs_table.insertRow(row)
-            self.specs_table.setItem(row, 0, QTableWidgetItem(display_name))
-            self.specs_table.setItem(row, 1, QTableWidgetItem(display_value))
-            row += 1
+            for name in spec_keys:
+                if name in specs:
+                    # Add category header if this is the first spec in the category
+                    if not category_added:
+                        self._add_category_row(category)
+                        category_added = True
+                    
+                    # Convert internal name to display name
+                    display_name = name.replace("_", " ").title()
+                    
+                    # Format value for display
+                    value = specs[name]
+                    if isinstance(value, bool):
+                        display_value = "Yes" if value else "No"
+                    else:
+                        display_value = str(value)
+                    
+                    # Add to table
+                    self._add_spec_row(display_name, display_value)
         
         # Update pricing (this would normally be calculated by your pricing module)
         self.update_pricing()
+    
+    def _add_category_row(self, category_name):
+        """Add a category header row to the specifications table."""
+        row = self.specs_table.rowCount()
+        self.specs_table.insertRow(row)
+        
+        category_item = QTableWidgetItem(category_name)
+        category_item.setBackground(Qt.lightGray)
+        category_item.setFont(QFont("", -1, QFont.Bold))
+        
+        # Span both columns
+        self.specs_table.setItem(row, 0, category_item)
+        self.specs_table.setSpan(row, 0, 1, 2)
+    
+    def _add_spec_row(self, name, value):
+        """Add a specification row to the table."""
+        row = self.specs_table.rowCount()
+        self.specs_table.insertRow(row)
+        
+        # Add indent to name for better visual hierarchy
+        name_item = QTableWidgetItem("    " + name)
+        self.specs_table.setItem(row, 0, name_item)
+        self.specs_table.setItem(row, 1, QTableWidgetItem(value))
     
     def update_pricing(self):
         """Update pricing based on product and specifications."""
         # This would normally call your pricing.py module
         # For now, we'll use placeholder calculations
         
-        # Base price based on product
+        # Base price based on product model
         base_price = 0.0
-        if "Point Level" in self.product_info.get("category", ""):
-            base_price = 800.0
-        elif "Continuous" in self.product_info.get("category", ""):
-            base_price = 1200.0
-        elif "Multi-Point" in self.product_info.get("category", ""):
-            base_price = 1500.0
-        elif "Magnetic" in self.product_info.get("category", ""):
-            base_price = 950.0
-        elif "Dust" in self.product_info.get("category", ""):
-            base_price = 1800.0
+        model = self.product_info.get("model", "")
+        
+        # Set base prices for each model
+        model_prices = {
+            "LS2000": 800.0,  # General Purpose
+            "LS2100": 700.0,  # Loop Powered
+            "LS6000": 900.0,  # Heavy Duty
+            "LS7000": 1200.0, # Advanced Features
+            "LS7000/2": 1500.0, # Dual Point
+            "LS8000": 1100.0, # Remote Mounted
+            "LS8000/2": 1400.0, # Remote Mounted Dual Point
+            "LT9000": 1800.0,  # Level Transmitter
+            "FS10000": 950.0   # Flow Switch
+        }
+        
+        # Get base price for the model
+        base_model = model.split()[0]  # Get just the model number without description
+        base_price = model_prices.get(base_model, 0.0)
         
         # Options price based on specifications
         options_price = 0.0
         
         # Add costs for each option
         for name, value in self.specs.items():
-            if name == "explosion_proof" and value:
-                options_price += 350.0
-            elif name == "high_temp" and value:
-                options_price += 250.0
+            # Material upgrades
+            if name == "material":
+                if "Hastelloy" in value:
+                    options_price += 400.0
+                elif "Aluminum" in value:
+                    options_price += 50.0
+                
+            # Exotic metals
+            if name == "exotic_metals":
+                if "Titanium" in value:
+                    options_price += 600.0
+                elif "Monel" in value:
+                    options_price += 500.0
+            
+            # Special O-rings
+            if name == "oring":
+                if "Kalrez" in value:
+                    options_price += 120.0
+                elif "PTFE" in value:
+                    options_price += 80.0
+                elif "EPDM" in value:
+                    options_price += 40.0
+            
+            # Housing options
+            if name == "housing":
+                if "Explosion-Proof" in value:
+                    options_price += 300.0
+                elif "Stainless Steel" in value:
+                    options_price += 200.0
+            
+            # Feature options
+            if name == "high_temp" and value:
+                options_price += 150.0
             elif name == "extended_probe" and value:
                 options_price += 100.0
-            elif name == "probe_length" and isinstance(value, (int, float)):
-                # Add cost for longer probes
-                if value > 24:
-                    options_price += (value - 24) * 10  # $10 per inch over 24"
+            elif name == "remote_display" and value:
+                options_price += 250.0
             
-            # Add more pricing rules as needed
+            # Output type options (for transmitters)
+            if name == "output_type":
+                if "HART" in value:
+                    options_price += 300.0
+                elif "Modbus RTU" in value:
+                    options_price += 250.0
+                
+            # Length options
+            if name == "probe_length" and isinstance(value, (int, float)):
+                # Add cost for longer probes
+                standard_length = 10  # Standard length is 10" for most models
+                if base_model in ["LS2000", "LS2100"] and value > standard_length:
+                    options_price += (value - standard_length) * 8.0  # $8 per inch over standard
+                elif value > standard_length:
+                    options_price += (value - standard_length) * 12.0  # $12 per inch over standard for other models
+            
+            if name == "cable_length" and isinstance(value, (int, float)):
+                # Add cost for longer cables
+                standard_cable = 10  # Standard cable length is 10 feet
+                if value > standard_cable:
+                    options_price += (value - standard_cable) * 5.0  # $5 per foot over standard
         
         # Calculate total
         total_price = base_price + options_price
@@ -206,24 +299,28 @@ class QuoteTab(QWidget):
     
     def on_customer_info_changed(self):
         """Handle changes to customer information."""
-        customer_info = self.get_customer_info()
-        self.customer_updated.emit(customer_info)
-    
-    def get_customer_info(self):
-        """Get customer information from form."""
-        return {
+        customer_data = {
             "name": self.customer_name.text(),
             "contact": self.contact_name.text(),
             "email": self.email.text(),
             "phone": self.phone.text(),
             "notes": self.notes.toPlainText()
         }
+        
+        # Emit signal with updated customer info
+        self.customer_updated.emit(customer_data)
     
     def get_quote_data(self):
-        """Get all quote data for saving or exporting."""
+        """Get all data for the current quote."""
         return {
             "product": self.product_info,
             "specifications": self.specs,
             "pricing": self.pricing,
-            "customer": self.get_customer_info()
+            "customer": {
+                "name": self.customer_name.text(),
+                "contact": self.contact_name.text(),
+                "email": self.email.text(),
+                "phone": self.phone.text(),
+                "notes": self.notes.toPlainText()
+            }
         } 

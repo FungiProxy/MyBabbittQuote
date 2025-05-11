@@ -5,7 +5,7 @@ Product Selection Tab for the Babbitt Quote Generator
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, 
     QComboBox, QGroupBox, QFormLayout, QSpacerItem,
-    QSizePolicy
+    QSizePolicy, QListWidget, QListWidgetItem
 )
 from PySide6.QtCore import Signal
 
@@ -14,14 +14,13 @@ class ProductTab(QWidget):
     """Product selection tab for the quote generator."""
     
     # Signals
-    product_selected = Signal(str, str)  # category, model
+    product_selected = Signal(str)  # model
     
     def __init__(self, parent=None):
         super().__init__(parent)
         self.init_ui()
         
         # Connect signals
-        self.product_category.currentIndexChanged.connect(self.on_category_changed)
         self.product_model.currentIndexChanged.connect(self.on_model_changed)
         
     def init_ui(self):
@@ -29,57 +28,35 @@ class ProductTab(QWidget):
         # Main layout
         main_layout = QVBoxLayout(self)
         
-        # Product category selection
-        self.category_group = QGroupBox("Product Category")
-        category_layout = QFormLayout()
-        
-        self.product_category = QComboBox()
-        # Initially, we'll add placeholder categories
-        # These would later be populated from ProductService
-        self.product_category.addItems([
-            "Point Level Switches",
-            "Continuous Measurement Transmitters",
-            "Multi-Point Level Switches",
-            "Magnetic Level Indicators",
-            "Dust Emissions Monitors"
-        ])
-        
-        category_layout.addRow("Select Product Category:", self.product_category)
-        self.category_group.setLayout(category_layout)
-        
         # Product model selection
-        self.model_group = QGroupBox("Product Model")
+        self.model_group = QGroupBox("Model Selection")
         model_layout = QFormLayout()
         
         self.product_model = QComboBox()
-        # Initially empty - will be populated based on category selection
         
-        model_layout.addRow("Select Product Model:", self.product_model)
+        # Add available models with their descriptions
+        self.models = {
+            "LS2000": "RF Admittance Level Switch - General Purpose",
+            "LS2100": "Loop Powered Level Switch",
+            "LS6000": "RF Admittance Level Switch - Heavy Duty",
+            "LS7000": "RF Admittance Level Switch - Advanced Features",
+            "LS7000/2": "Dual Point Level Switch",
+            "LS8000": "Remote Mounted Level Switch",
+            "LS8000/2": "Remote Mounted Dual Point Level Switch",
+            "LT9000": "Level Transmitter",
+            "FS10000": "Flow Switch"
+        }
+        
+        for model, description in self.models.items():
+            self.product_model.addItem(f"{model} - {description}", model)
+        
+        model_layout.addRow("Select Model:", self.product_model)
         self.model_group.setLayout(model_layout)
         
-        # Application selection
-        self.application_group = QGroupBox("Application")
-        application_layout = QFormLayout()
-        
-        self.application_type = QComboBox()
-        self.application_type.addItems([
-            "Oil & Gas",
-            "Refining",
-            "Petrochemical",
-            "Water/Wastewater",
-            "Food Processing",
-            "Dry Bulk Solid"
-        ])
-        
-        application_layout.addRow("Industry Application:", self.application_type)
-        self.application_group.setLayout(application_layout)
-        
-        # Add everything to main layout
-        main_layout.addWidget(self.category_group)
+        # Add to main layout
         main_layout.addWidget(self.model_group)
-        main_layout.addWidget(self.application_group)
         
-        # Add product info section (will be populated dynamically)
+        # Add product info section
         self.info_group = QGroupBox("Product Information")
         info_layout = QVBoxLayout()
         self.product_info_label = QLabel("Select a product to view details")
@@ -91,53 +68,129 @@ class ProductTab(QWidget):
         # Add a spacer at the bottom to push everything up
         main_layout.addItem(QSpacerItem(20, 40, QSizePolicy.Minimum, QSizePolicy.Expanding))
     
-    def on_category_changed(self, index):
-        """Handle category selection changes."""
-        self.product_model.clear()
-        
-        # This would normally fetch from ProductService
-        # For now, we'll add placeholder models based on the category
-        if index == 0:  # Point Level Switches
-            models = ["RF Admittance", "Capacitance", "Vibration"]
-        elif index == 1:  # Continuous Measurement
-            models = ["Guided Wave Radar"]  # Removed Ultrasonic and Radar as they're no longer offered
-        elif index == 2:  # Multi-Point Level Switches
-            models = ["Float Type", "Magnetostrictive", "Resistive Chain"]
-        elif index == 3:  # Magnetic Level Indicators
-            models = ["Standard", "High Pressure", "High Temperature"]
-        else:  # Dust Emissions Monitors
-            models = ["Particulate Monitor", "Broken Bag Detector"]
-        
-        self.product_model.addItems(models)
-    
     def on_model_changed(self, index):
         """Handle model selection changes."""
         if index >= 0:
-            category = self.product_category.currentText()
-            model = self.product_model.currentText()
+            model = self.product_model.currentData()  # Get the model number from the combobox data
             
             # Update product info
-            self.update_product_info(category, model)
+            self.update_product_info(model)
             
             # Emit signal with selected product
-            self.product_selected.emit(category, model)
+            self.product_selected.emit(model)
     
-    def update_product_info(self, category, model):
+    def update_product_info(self, model):
         """Update the product information section."""
-        # This would normally fetch detailed product info from ProductService
-        # For now, we'll just display the selection
         info_text = f"<h3>{model}</h3>"
-        info_text += f"<p><b>Category:</b> {category}</p>"
-        info_text += "<p>This is a placeholder for detailed product information. In the full implementation, this would show product descriptions, features, and specifications overview.</p>"
         
+        # Add model-specific info
+        model_info = {
+            "LS2000": """
+                <p>General Purpose RF Admittance Level Switch</p>
+                <ul>
+                    <li>Available in 115VAC or 24VDC</li>
+                    <li>Standard 10" probe length (S, H materials)</li>
+                    <li>Standard 4" probe length (U, T materials)</li>
+                    <li>Not recommended for plastic pellets without extra static protection</li>
+                </ul>
+            """,
+            "LS2100": """
+                <p>Loop Powered Level Switch</p>
+                <ul>
+                    <li>24VDC Loop Powered (16-32VDC)</li>
+                    <li>Standard 10" probe length</li>
+                    <li>8mA to 16mA operation</li>
+                </ul>
+            """,
+            "LS6000": """
+                <p>Heavy Duty RF Admittance Level Switch</p>
+                <ul>
+                    <li>Available in 12VDC, 24VDC, 115VAC, or 240VAC</li>
+                    <li>Standard 10" probe length</li>
+                    <li>Optional 3/4" diameter probe</li>
+                    <li>Higher temperature options available</li>
+                </ul>
+            """,
+            "LS7000": """
+                <p>Advanced Features RF Admittance Level Switch</p>
+                <ul>
+                    <li>Available in 12VDC, 24VDC, 115VAC, or 240VAC</li>
+                    <li>Built-in timer for pump control</li>
+                    <li>Optional stainless steel housing</li>
+                    <li>Higher temperature options available</li>
+                </ul>
+            """,
+            "LS7000/2": """
+                <p>Dual Point Level Switch</p>
+                <ul>
+                    <li>Available in 12VDC, 24VDC, 115VAC, or 240VAC</li>
+                    <li>Designed for auto-fill or auto-empty applications</li>
+                    <li>Requires Halar coating for conductive liquids</li>
+                    <li>Not suitable for dry materials</li>
+                </ul>
+            """,
+            "LS8000": """
+                <p>Remote Mounted Level Switch</p>
+                <ul>
+                    <li>Available in 12VDC, 24VDC, 115VAC, or 240VAC</li>
+                    <li>Electronics can be mounted away from probe</li>
+                    <li>Standard 10" probe length</li>
+                    <li>Multiple transmitter sensitivities available</li>
+                </ul>
+            """,
+            "LS8000/2": """
+                <p>Remote Mounted Dual Point Level Switch</p>
+                <ul>
+                    <li>Available in 12VDC, 24VDC, 115VAC, or 240VAC</li>
+                    <li>Can get 4 set points with two receiver cards</li>
+                    <li>Designed for homogeneous liquids</li>
+                    <li>Requires proper grounding for best performance</li>
+                </ul>
+            """,
+            "LT9000": """
+                <p>Level Transmitter</p>
+                <ul>
+                    <li>Available in 24VDC and 230VAC</li>
+                    <li>Designed for electrically conductive liquids</li>
+                    <li>Standard 10" probe length</li>
+                    <li>Requires proper grounding for operation</li>
+                </ul>
+            """,
+            "FS10000": """
+                <p>Flow Switch</p>
+                <ul>
+                    <li>Available in 24VDC and 115VAC</li>
+                    <li>Standard 6" insertion length</li>
+                    <li>Designed for flow detection in pipes</li>
+                    <li>Adjustable sensitivity for different flow rates</li>
+                </ul>
+            """
+        }
+        
+        info_text += model_info.get(model, "<p>No detailed information available for this model.</p>")
         self.product_info_label.setText(info_text)
     
     def get_selected_product(self):
         """Get the currently selected product information."""
+        model = self.product_model.currentData()  # Get the model number
+        
+        # Map model to category
+        category_map = {
+            "LS2000": "Level Switch",
+            "LS2100": "Level Switch",
+            "LS6000": "Level Switch",
+            "LS7000": "Level Switch",
+            "LS7000/2": "Level Switch",
+            "LS8000": "Level Switch",
+            "LS8000/2": "Level Switch",
+            "LT9000": "Level Transmitter",
+            "FS10000": "Flow Switch"
+        }
+        
         return {
-            "category": self.product_category.currentText(),
-            "model": self.product_model.currentText(),
-            "application": self.application_type.currentText()
+            "model": model,
+            "description": self.models.get(model, ""),
+            "category": category_map.get(model, "Unknown")
         }
         
     def connect_service(self, product_service):

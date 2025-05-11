@@ -14,12 +14,20 @@ print(f"Current directory: {os.getcwd()}")
 print(f"Python version: {sys.version}")
 
 try:
+    # Import database initialization
+    print("Checking database...")
+    from scripts.create_db_if_needed import create_database_if_needed
+    
+    # Initialize database if needed
+    if not create_database_if_needed():
+        print("Error initializing database. Application may not function correctly.")
+    
     print("Importing MainWindow...")
     # Import main window
     from src.ui.main_window import MainWindow
     print("MainWindow imported successfully")
 except Exception as e:
-    print(f"Error importing MainWindow: {e}")
+    print(f"Error during initialization: {e}")
     traceback.print_exc()
     input("Press Enter to exit...")
     sys.exit(1)

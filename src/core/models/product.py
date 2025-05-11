@@ -1,38 +1,21 @@
 """
-Product models for storing product information.
+Product model for storing product information.
 """
-from sqlalchemy import Column, Integer, String, Float, ForeignKey, Boolean, Text
+from sqlalchemy import Column, Integer, String, Float, Boolean, Text
 from sqlalchemy.orm import relationship
 
 from src.core.database import Base
 
 
-class ProductFamily(Base):
-    """Product family model for grouping related product variants."""
+class Product(Base):
+    """Product model for storing specific product configurations."""
     
-    __tablename__ = "product_families"
+    __tablename__ = "products"
     
     id = Column(Integer, primary_key=True, index=True)
-    name = Column(String, nullable=False, index=True)
+    model_number = Column(String, nullable=False, index=True)  # e.g., "LS2000", "LS8000/2"
     description = Column(Text)
     category = Column(String, index=True)  # e.g., "Level Switch", "Transmitter"
-    
-    # Relationships
-    variants = relationship("ProductVariant", back_populates="family", cascade="all, delete-orphan")
-    
-    def __repr__(self):
-        return f"<ProductFamily(id={self.id}, name='{self.name}')>"
-
-
-class ProductVariant(Base):
-    """Product variant model for storing specific product configurations."""
-    
-    __tablename__ = "product_variants"
-    
-    id = Column(Integer, primary_key=True, index=True)
-    product_family_id = Column(Integer, ForeignKey("product_families.id"), nullable=False)
-    model_number = Column(String, nullable=False, index=True)
-    description = Column(Text)
     
     # Pricing information
     base_price = Column(Float, nullable=False, default=0.0)
@@ -42,9 +25,7 @@ class ProductVariant(Base):
     voltage = Column(String)  # e.g., "115VAC", "24VDC"
     material = Column(String)  # e.g., "S", "H", "U", "T"
     
-    # Relationships
-    family = relationship("ProductFamily", back_populates="variants")
-    quote_items = relationship("QuoteItem", back_populates="product")
+    # No relationships with QuoteItem - it now relates to ProductVariant
     
     def __repr__(self):
-        return f"<ProductVariant(id={self.id}, model='{self.model_number}', base_price={self.base_price})>" 
+        return f"<Product(id={self.id}, model='{self.model_number}', base_price={self.base_price})>"            

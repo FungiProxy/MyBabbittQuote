@@ -82,119 +82,24 @@ class SpecificationsTab(QWidget):
         header.setAlignment(Qt.AlignCenter)
         self.specs_layout.addWidget(header)
         
-        # Create different specs based on category
-        if "Point Level" in category:
-            self.add_point_level_specs()
-        elif "Continuous Measurement" in category:
-            self.add_continuous_measurement_specs()
-        elif "Multi-Point" in category:
-            self.add_multi_point_specs()
-        elif "Magnetic Level" in category:
-            self.add_magnetic_level_specs()
-        else:  # Dust Emissions
-            self.add_dust_emissions_specs()
+        # We'll use a common format for all products with the agreed order
+        # Some sections might be product-specific
+        self.add_voltage_section()
+        self.add_material_section()
+        self.add_probe_length_section()
+        self.add_connection_section()
+        self.add_exotic_metals_section()
+        self.add_oring_section()
+        self.add_cable_length_section()
+        self.add_housing_section()
+        self.add_additional_options_section()
             
         # Add spacer at the bottom
         self.specs_layout.addItem(
             QSpacerItem(20, 40, QSizePolicy.Minimum, QSizePolicy.Expanding)
         )
-    
-    def add_point_level_specs(self):
-        """Add specifications for Point Level Switches."""
-        # Material type
-        material_group = QGroupBox("Material Properties")
-        material_layout = QFormLayout()
         
-        material_type = QComboBox()
-        material_type.addItems(["Liquid", "Powder", "Granular", "Slurry"])
-        material_layout.addRow("Material Type:", material_type)
-        self.specs_widgets["material_type"] = material_type
-        
-        # Viscosity (for liquids)
-        viscosity = QComboBox()
-        viscosity.addItems(["Low", "Medium", "High", "Very High"])
-        material_layout.addRow("Viscosity:", viscosity)
-        self.specs_widgets["viscosity"] = viscosity
-        
-        # Temperature range
-        temp_min = QSpinBox()
-        temp_min.setRange(-100, 500)
-        temp_min.setValue(20)
-        temp_min.setSuffix(" °C")
-        material_layout.addRow("Minimum Temperature:", temp_min)
-        self.specs_widgets["temp_min"] = temp_min
-        
-        temp_max = QSpinBox()
-        temp_max.setRange(-100, 500)
-        temp_max.setValue(80)
-        temp_max.setSuffix(" °C")
-        material_layout.addRow("Maximum Temperature:", temp_max)
-        self.specs_widgets["temp_max"] = temp_max
-        
-        material_group.setLayout(material_layout)
-        self.specs_layout.addWidget(material_group)
-        
-        # Installation options
-        install_group = QGroupBox("Installation Options")
-        install_layout = QFormLayout()
-        
-        mounting = QComboBox()
-        mounting.addItems(["Top Mount", "Side Mount", "Angled"])
-        install_layout.addRow("Mounting Type:", mounting)
-        self.specs_widgets["mounting"] = mounting
-        
-        connection = QComboBox()
-        connection.addItems(["1/2\" NPT", "3/4\" NPT", "1\" NPT", "1.5\" NPT", "2\" NPT", "Flanged"])
-        install_layout.addRow("Process Connection:", connection)
-        self.specs_widgets["connection"] = connection
-        
-        probe_length = QSpinBox()
-        probe_length.setRange(1, 120)
-        probe_length.setValue(12)
-        probe_length.setSuffix(" inches")
-        install_layout.addRow("Probe Length:", probe_length)
-        self.specs_widgets["probe_length"] = probe_length
-        
-        install_group.setLayout(install_layout)
-        self.specs_layout.addWidget(install_group)
-        
-        # Electrical options
-        electrical_group = QGroupBox("Electrical Options")
-        electrical_layout = QFormLayout()
-        
-        voltage = QComboBox()
-        voltage.addItems(["24 VDC", "120 VAC", "240 VAC"])
-        electrical_layout.addRow("Supply Voltage:", voltage)
-        self.specs_widgets["voltage"] = voltage
-        
-        output = QComboBox()
-        output.addItems(["Relay SPDT", "Relay DPDT", "4-20mA", "0-10V", "Modbus RTU"])
-        electrical_layout.addRow("Output Type:", output)
-        self.specs_widgets["output"] = output
-        
-        electrical_group.setLayout(electrical_layout)
-        self.specs_layout.addWidget(electrical_group)
-        
-        # Additional options
-        options_group = QGroupBox("Additional Options")
-        options_layout = QVBoxLayout()
-        
-        explosion_proof = QCheckBox("Explosion Proof Enclosure")
-        options_layout.addWidget(explosion_proof)
-        self.specs_widgets["explosion_proof"] = explosion_proof
-        
-        high_temp = QCheckBox("High Temperature Version")
-        options_layout.addWidget(high_temp)
-        self.specs_widgets["high_temp"] = high_temp
-        
-        extended_probe = QCheckBox("Extended Probe")
-        options_layout.addWidget(extended_probe)
-        self.specs_widgets["extended_probe"] = extended_probe
-        
-        options_group.setLayout(options_layout)
-        self.specs_layout.addWidget(options_group)
-        
-        # Connect signals
+        # Connect signals for all widgets
         for widget_name, widget in self.specs_widgets.items():
             if isinstance(widget, QComboBox):
                 widget.currentIndexChanged.connect(self.on_specs_changed)
@@ -202,94 +107,191 @@ class SpecificationsTab(QWidget):
                 widget.valueChanged.connect(self.on_specs_changed)
             elif isinstance(widget, QCheckBox):
                 widget.stateChanged.connect(self.on_specs_changed)
+            elif isinstance(widget, QSlider):
+                widget.valueChanged.connect(self.on_specs_changed)
     
+    def add_voltage_section(self):
+        """Add voltage selection section."""
+        group = QGroupBox("Voltage")
+        layout = QFormLayout()
+        
+        voltage = QComboBox()
+        voltage.addItems(["24 VDC", "120 VAC", "240 VAC"])
+        layout.addRow("Supply Voltage:", voltage)
+        self.specs_widgets["voltage"] = voltage
+        
+        group.setLayout(layout)
+        self.specs_layout.addWidget(group)
+    
+    def add_material_section(self):
+        """Add material selection section."""
+        group = QGroupBox("Material")
+        layout = QFormLayout()
+        
+        material = QComboBox()
+        material.addItems(["S - 316 Stainless Steel", "A - Aluminum", "H - Hastelloy C"])
+        layout.addRow("Material:", material)
+        self.specs_widgets["material"] = material
+        
+        # Add process material type if it's a level switch
+        if "Level Switch" in self.current_product.get("category", ""):
+            material_type = QComboBox()
+            material_type.addItems(["Liquid", "Powder", "Granular", "Slurry"])
+            layout.addRow("Process Material Type:", material_type)
+            self.specs_widgets["material_type"] = material_type
+            
+            viscosity = QComboBox()
+            viscosity.addItems(["Low", "Medium", "High", "Very High"])
+            layout.addRow("Viscosity:", viscosity)
+            self.specs_widgets["viscosity"] = viscosity
+        
+        group.setLayout(layout)
+        self.specs_layout.addWidget(group)
+    
+    def add_probe_length_section(self):
+        """Add probe length section."""
+        # Skip for products without probes
+        if "Emissions" in self.current_product.get("category", ""):
+            return
+            
+        group = QGroupBox("Probe Length")
+        layout = QFormLayout()
+        
+        probe_length = QSpinBox()
+        probe_length.setRange(1, 120)
+        probe_length.setValue(12)
+        probe_length.setSuffix(" inches")
+        layout.addRow("Probe Length:", probe_length)
+        self.specs_widgets["probe_length"] = probe_length
+        
+        group.setLayout(layout)
+        self.specs_layout.addWidget(group)
+    
+    def add_connection_section(self):
+        """Add connection section."""
+        group = QGroupBox("Connection")
+        layout = QFormLayout()
+        
+        connection = QComboBox()
+        connection.addItems(["1/2\" NPT", "3/4\" NPT", "1\" NPT", "1.5\" NPT", "2\" NPT", "Flanged"])
+        layout.addRow("Process Connection:", connection)
+        self.specs_widgets["connection"] = connection
+        
+        # Add mounting type for applicable products
+        if "Level Switch" in self.current_product.get("category", ""):
+            mounting = QComboBox()
+            mounting.addItems(["Top Mount", "Side Mount", "Angled"])
+            layout.addRow("Mounting Type:", mounting)
+            self.specs_widgets["mounting"] = mounting
+        
+        group.setLayout(layout)
+        self.specs_layout.addWidget(group)
+    
+    def add_exotic_metals_section(self):
+        """Add exotic metals section."""
+        group = QGroupBox("Exotic Metals")
+        layout = QFormLayout()
+        
+        exotic_metals = QComboBox()
+        exotic_metals.addItems(["None", "T - Titanium", "U - Monel"])
+        layout.addRow("Exotic Metal Option:", exotic_metals)
+        self.specs_widgets["exotic_metals"] = exotic_metals
+        
+        group.setLayout(layout)
+        self.specs_layout.addWidget(group)
+    
+    def add_oring_section(self):
+        """Add O-ring material section."""
+        # Skip for products without O-rings
+        if "Emissions" in self.current_product.get("category", ""):
+            return
+            
+        group = QGroupBox("O-ring Material")
+        layout = QFormLayout()
+        
+        oring = QComboBox()
+        oring.addItems(["Viton", "PTFE", "Kalrez", "EPDM"])
+        layout.addRow("O-ring Material:", oring)
+        self.specs_widgets["oring"] = oring
+        
+        group.setLayout(layout)
+        self.specs_layout.addWidget(group)
+    
+    def add_cable_length_section(self):
+        """Add cable length section."""
+        group = QGroupBox("Cable Length")
+        layout = QFormLayout()
+        
+        cable_length = QSpinBox()
+        cable_length.setRange(0, 100)
+        cable_length.setValue(10)
+        cable_length.setSuffix(" feet")
+        layout.addRow("Cable Length:", cable_length)
+        self.specs_widgets["cable_length"] = cable_length
+        
+        group.setLayout(layout)
+        self.specs_layout.addWidget(group)
+    
+    def add_housing_section(self):
+        """Add housing type section."""
+        group = QGroupBox("Housing Type")
+        layout = QFormLayout()
+        
+        housing = QComboBox()
+        housing.addItems(["Standard", "Explosion-Proof", "Stainless Steel"])
+        layout.addRow("Housing Type:", housing)
+        self.specs_widgets["housing"] = housing
+        
+        group.setLayout(layout)
+        self.specs_layout.addWidget(group)
+    
+    def add_additional_options_section(self):
+        """Add additional options section."""
+        group = QGroupBox("Additional Options")
+        layout = QVBoxLayout()
+        
+        # Common options for most products
+        high_temp = QCheckBox("High Temperature Version")
+        layout.addWidget(high_temp)
+        self.specs_widgets["high_temp"] = high_temp
+        
+        # Product-specific options
+        if "Level Switch" in self.current_product.get("category", ""):
+            extended_probe = QCheckBox("Extended Probe")
+            layout.addWidget(extended_probe)
+            self.specs_widgets["extended_probe"] = extended_probe
+        
+        if "Transmitter" in self.current_product.get("category", ""):
+            remote_display = QCheckBox("Remote Display Option")
+            layout.addWidget(remote_display)
+            self.specs_widgets["remote_display"] = remote_display
+            
+            output_type = QComboBox()
+            output_type.addItems(["4-20mA", "0-10V", "Modbus RTU", "HART"])
+            layout.addWidget(QLabel("Output Type:"))
+            layout.addWidget(output_type)
+            self.specs_widgets["output_type"] = output_type
+        
+        group.setLayout(layout)
+        self.specs_layout.addWidget(group)
+    
+    # The following methods are kept for backward compatibility with 
+    # existing code but are no longer used directly
+    
+    def add_point_level_specs(self):
+        pass
+        
     def add_continuous_measurement_specs(self):
-        """Add specifications for Continuous Measurement Transmitters."""
-        # Basic placeholder - would be filled with relevant controls
-        
-        # Add a note about available technologies
-        note_label = QLabel("<b>Note:</b> Only Guided Wave Radar technology is currently available.")
-        self.specs_layout.addWidget(note_label)
-        
-        range_group = QGroupBox("Measurement Range")
-        range_layout = QFormLayout()
-        
-        min_range = QDoubleSpinBox()
-        min_range.setRange(0, 1000)
-        min_range.setValue(0)
-        min_range.setSuffix(" ft")
-        range_layout.addRow("Minimum Range:", min_range)
-        self.specs_widgets["min_range"] = min_range
-        
-        max_range = QDoubleSpinBox()
-        max_range.setRange(0, 1000)
-        max_range.setValue(30)
-        max_range.setSuffix(" ft")
-        range_layout.addRow("Maximum Range:", max_range)
-        self.specs_widgets["max_range"] = max_range
-        
-        range_group.setLayout(range_layout)
-        self.specs_layout.addWidget(range_group)
+        pass
     
     def add_multi_point_specs(self):
-        """Add specifications for Multi-Point Level Switches."""
-        # Basic placeholder - would be filled with relevant controls
-        points_group = QGroupBox("Switch Points")
-        points_layout = QFormLayout()
-        
-        num_points = QSpinBox()
-        num_points.setRange(1, 8)
-        num_points.setValue(3)
-        points_layout.addRow("Number of Switch Points:", num_points)
-        self.specs_widgets["num_points"] = num_points
-        
-        points_group.setLayout(points_layout)
-        self.specs_layout.addWidget(points_group)
-        
-        # Add more relevant controls for multi-point switches
-        # ...
+        pass
     
     def add_magnetic_level_specs(self):
-        """Add specifications for Magnetic Level Indicators."""
-        # Basic placeholder - would be filled with relevant controls
-        indicator_group = QGroupBox("Indicator Options")
-        indicator_layout = QFormLayout()
-        
-        indicator_length = QSpinBox()
-        indicator_length.setRange(1, 200)
-        indicator_length.setValue(36)
-        indicator_length.setSuffix(" inches")
-        indicator_layout.addRow("Indicator Length:", indicator_length)
-        self.specs_widgets["indicator_length"] = indicator_length
-        
-        indicator_group.setLayout(indicator_layout)
-        self.specs_layout.addWidget(indicator_group)
-        
-        # Add more relevant controls for magnetic level indicators
-        # ...
+        pass
     
     def add_dust_emissions_specs(self):
-        """Add specifications for Dust Emissions Monitors."""
-        # Basic placeholder - would be filled with relevant controls
-        sensitivity_group = QGroupBox("Sensitivity")
-        sensitivity_layout = QFormLayout()
-        
-        sensitivity = QSlider(Qt.Horizontal)
-        sensitivity.setRange(1, 10)
-        sensitivity.setValue(5)
-        
-        sensitivity_label = QLabel("5")
-        sensitivity.valueChanged.connect(lambda v: sensitivity_label.setText(str(v)))
-        
-        sensitivity_layout.addRow("Sensitivity Level:", sensitivity)
-        sensitivity_layout.addRow("Value:", sensitivity_label)
-        self.specs_widgets["sensitivity"] = sensitivity
-        
-        sensitivity_group.setLayout(sensitivity_layout)
-        self.specs_layout.addWidget(sensitivity_group)
-        
-        # Add more relevant controls for dust emissions monitors
-        # ...
+        pass
     
     def on_specs_changed(self):
         """Handle changes to specification values."""

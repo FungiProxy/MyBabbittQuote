@@ -1,32 +1,35 @@
 """
-Database initialization and seeding script.
-
-This script creates the database and populates it with initial data.
-Run this script during development to create a pre-populated database.
+Database population service.
+Populates the database with initial data from the price list.
 """
 import os
-import sys
+import logging
 from pathlib import Path
-
-# Add the project root directory to the Python path
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from sqlalchemy.orm import Session
 
-from src.core.database import SessionLocal, init_db
+from src.core.database import SessionLocal
 from src.core.models import (
-    Customer,
     Material,
-    Option,
-    ProductFamily,
-    ProductVariant,
     StandardLength,
     MaterialAvailability,
+    ProductFamily,
+    ProductVariant,
+    Option,
+    Customer
 )
 
+# Set up logging
+logger = logging.getLogger(__name__)
 
 def populate_materials(db: Session):
     """Populate materials table with initial data."""
+    # Check if materials already exist
+    existing_count = db.query(Material).count()
+    if existing_count > 0:
+        logger.info(f"Materials table already has {existing_count} records. Skipping population.")
+        return
+    
     materials = [
         Material(
             code="S",
@@ -83,11 +86,16 @@ def populate_materials(db: Session):
     # Add materials to database
     db.add_all(materials)
     db.commit()
-    print(f"Added {len(materials)} materials")
-
+    logger.info(f"Added {len(materials)} materials")
 
 def populate_standard_lengths(db: Session):
     """Populate standard lengths for materials with non-standard length surcharges."""
+    # Check if standard lengths already exist
+    existing_count = db.query(StandardLength).count()
+    if existing_count > 0:
+        logger.info(f"StandardLength table already has {existing_count} records. Skipping population.")
+        return
+        
     # Standard lengths for H material (Halar Coated)
     standard_lengths = [
         StandardLength(material_code="H", length=6.0),
@@ -105,11 +113,16 @@ def populate_standard_lengths(db: Session):
     # Add standard lengths to database
     db.add_all(standard_lengths)
     db.commit()
-    print(f"Added {len(standard_lengths)} standard lengths")
-
+    logger.info(f"Added {len(standard_lengths)} standard lengths")
 
 def populate_material_availability(db: Session):
     """Populate material availability for different product types."""
+    # Check if material availability records already exist
+    existing_count = db.query(MaterialAvailability).count()
+    if existing_count > 0:
+        logger.info(f"MaterialAvailability table already has {existing_count} records. Skipping population.")
+        return
+    
     # Define all product types
     product_types = [
         "LS2000", "LS2100", "LS6000", "LS7000", "LS7000/2", 
@@ -145,11 +158,20 @@ def populate_material_availability(db: Session):
     # Add availability records to database
     db.add_all(availability_records)
     db.commit()
-    print(f"Added {len(availability_records)} material availability records")
+    logger.info(f"Added {len(availability_records)} material availability records")
 
+def populate_from_price_list(db: Session):
+    """Populate the database with data from the price list."""
+    # This function would parse the price_list.txt file and populate the database
+    # For now, we'll just populate with sample data
+    
+    # Check if product families already exist
+    existing_count = db.query(ProductFamily).count()
+    if existing_count > 0:
+        logger.info(f"ProductFamily table already has {existing_count} records. Skipping population.")
+        return
 
-def populate_product_families(db: Session):
-    """Populate product families table with initial data."""
+    # Sample product families
     families = [
         ProductFamily(
             name="LS2000",
@@ -201,15 +223,9 @@ def populate_product_families(db: Session):
     # Add families to database
     db.add_all(families)
     db.commit()
-    print(f"Added {len(families)} product families")
-
-
-def populate_product_variants(db: Session):
-    """Populate product variants table with initial data."""
-    # This is a simplified version - the actual implementation would parse the price list
-    # and create variants for each product family with different materials and voltages
+    logger.info(f"Added {len(families)} product families")
     
-    # Get product family IDs
+    # Add a few sample product variants for LS2000
     ls2000 = db.query(ProductFamily).filter(ProductFamily.name == "LS2000").first()
     
     variants = [
@@ -231,34 +247,21 @@ def populate_product_variants(db: Session):
             voltage="115VAC",
             material="H",
         ),
-        ProductVariant(
-            product_family_id=ls2000.id,
-            model_number="LS2000-115VAC-U-4\"",
-            description="LS 2000 level switch with 115VAC power and 4\" UHMWPE blind end probe",
-            base_price=445.0,
-            base_length=4.0,
-            voltage="115VAC",
-            material="U",
-        ),
-        ProductVariant(
-            product_family_id=ls2000.id,
-            model_number="LS2000-115VAC-T-4\"",
-            description="LS 2000 level switch with 115VAC power and 4\" Teflon blind end probe",
-            base_price=485.0,
-            base_length=4.0,
-            voltage="115VAC",
-            material="T",
-        ),
     ]
     
     # Add variants to database
     db.add_all(variants)
     db.commit()
-    print(f"Added {len(variants)} product variants")
-
+    logger.info(f"Added {len(variants)} product variants")
 
 def populate_options(db: Session):
     """Populate options table with initial data."""
+    # Check if options already exist
+    existing_count = db.query(Option).count()
+    if existing_count > 0:
+        logger.info(f"Option table already has {existing_count} records. Skipping population.")
+        return
+        
     options = [
         Option(
             name="TEFLON INSULATOR",
@@ -284,86 +287,91 @@ def populate_options(db: Session):
             category="feature",
             product_families="LS2000,LS2100,LS6000,LS7000,LS8000",
         ),
-        Option(
-            name="BENT PROBE",
-            description="Bent probe",
-            price=50.0,
-            price_type="fixed",
-            category="feature",
-            product_families="LS2000,LS2100,LS6000,LS7000,LS8000",
-        ),
-        Option(
-            name="STAINLESS STEEL TAG",
-            description="Stainless steel tag",
-            price=30.0,
-            price_type="fixed",
-            category="feature",
-            product_families="LS2000,LS2100,LS6000,LS7000,LS7000/2,LS8000,LS8000/2,LT9000,FS10000",
-        ),
     ]
     
     # Add options to database
     db.add_all(options)
     db.commit()
-    print(f"Added {len(options)} options")
-
+    logger.info(f"Added {len(options)} options")
 
 def populate_sample_customers(db: Session):
     """Populate customers table with sample data."""
+    # Check if customers already exist
+    existing_count = db.query(Customer).count()
+    if existing_count > 0:
+        logger.info(f"Customer table already has {existing_count} records. Skipping population.")
+        return
+        
     customers = [
         Customer(
-            name="John Smith",
-            company="Acme Industries",
-            email="john.smith@acme.com",
+            name="Acme Industries",
+            contact_name="John Doe",
+            email="john.doe@acme.com",
             phone="555-123-4567",
-            address="123 Main St",
-            city="Springfield",
-            state="IL",
-            zip_code="62701",
+            address="123 Main St, Anytown, USA",
         ),
         Customer(
-            name="Jane Doe",
-            company="Tech Solutions",
-            email="jane.doe@techsolutions.com",
+            name="XYZ Corporation",
+            contact_name="Jane Smith",
+            email="jane.smith@xyz.com",
             phone="555-987-6543",
-            address="456 Oak Ave",
-            city="Riverdale",
-            state="NY",
-            zip_code="10471",
+            address="456 Oak Ave, Somecity, USA",
         ),
     ]
     
     # Add customers to database
     db.add_all(customers)
     db.commit()
-    print(f"Added {len(customers)} sample customers")
+    logger.info(f"Added {len(customers)} sample customers")
 
+def remove_obsolete_products(db: Session):
+    """
+    Remove ultrasonic and radar products from the database as they are no longer offered.
+    This reflects the information from additional_info.txt that states 
+    "We no longer offer Ultrasonic or Radar".
+    """
+    # Find and remove all product families with ultrasonic or radar in their name or description
+    obsolete_families = db.query(ProductFamily).filter(
+        (ProductFamily.name.ilike("%ultrasonic%")) |
+        (ProductFamily.description.ilike("%ultrasonic%")) |
+        (ProductFamily.name.ilike("%radar%")) |
+        (ProductFamily.description.ilike("%radar%")) |
+        (ProductFamily.category.ilike("%ultrasonic%")) |
+        (ProductFamily.category.ilike("%radar%"))
+    ).all()
+    
+    # Log the families to be removed
+    for family in obsolete_families:
+        logger.info(f"Removing obsolete product family: {family.name} - {family.description}")
+        
+        # Delete associated product variants first
+        variants = db.query(ProductVariant).filter(
+            ProductVariant.product_family_id == family.id
+        ).all()
+        
+        for variant in variants:
+            logger.info(f"Removing obsolete product variant: {variant.model_number}")
+            db.delete(variant)
+        
+        # Now delete the family
+        db.delete(family)
+    
+    # Commit changes
+    db.commit()
+    logger.info(f"Removed {len(obsolete_families)} obsolete product families and their variants")
 
-def populate_db():
+def populate_database():
     """Populate the database with initial data."""
-    # Initialize database schema
-    init_db()
-    
-    # Create database session
     db = SessionLocal()
-    
     try:
-        # Populate tables
         populate_materials(db)
         populate_standard_lengths(db)
         populate_material_availability(db)
-        populate_product_families(db)
-        populate_product_variants(db)
+        populate_from_price_list(db)
         populate_options(db)
-        populate_sample_customers(db)
-        
-        print("Database population complete.")
+        remove_obsolete_products(db)
+        logger.info("Database population completed successfully")
     except Exception as e:
-        print(f"Error populating database: {str(e)}")
-        db.rollback()
+        logger.error(f"Error populating database: {e}")
     finally:
-        db.close()
-
-
-if __name__ == "__main__":
-    populate_db() 
+        db.close() 

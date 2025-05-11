@@ -15,9 +15,11 @@ from src.core.models import (
     Customer,
     Material,
     Option,
+    Product,
     ProductFamily,
     ProductVariant,
     StandardLength,
+    MaterialAvailability,
 )
 
 
@@ -145,6 +147,41 @@ def print_customers(db):
         print(f"{customer.name:<20} {customer.company or 'N/A':<25} {customer.email or 'N/A':<30} {customer.phone or 'N/A'}")
 
 
+def print_material_availability(db):
+    """Print material availability for different product types."""
+    print_separator("Material Availability")
+    
+    # Get all product types
+    product_types = db.query(MaterialAvailability.product_type).distinct().all()
+    product_types = [pt[0] for pt in product_types]
+    
+    if not product_types:
+        print("No product types found.")
+        return
+    
+    # For each product type, show available and unavailable materials
+    for product_type in product_types:
+        print(f"\nProduct Type: {product_type}")
+        
+        # Get availability records for this product type
+        availability_records = db.query(MaterialAvailability).filter(
+            MaterialAvailability.product_type == product_type
+        ).all()
+        
+        available = [r.material_code for r in availability_records if r.is_available]
+        unavailable = [r.material_code for r in availability_records if not r.is_available]
+        
+        if available:
+            print(f"  Available materials: {', '.join(available)}")
+        if unavailable:
+            print(f"  Unavailable materials: {', '.join(unavailable)}")
+            
+            # Show notes for unavailable materials
+            for record in availability_records:
+                if not record.is_available and record.notes:
+                    print(f"    Note for {record.material_code}: {record.notes}")
+
+
 def main():
     """Query and display database contents."""
     db = SessionLocal()
@@ -156,6 +193,7 @@ def main():
         print_product_variants(db)
         print_options(db)
         print_customers(db)
+        print_material_availability(db)
         
         print("\nQuery complete.")
     finally:

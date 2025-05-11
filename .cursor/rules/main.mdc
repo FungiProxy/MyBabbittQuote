@@ -9,5 +9,5 @@ alwaysApply: true
 
 # Comments: Use comments judiciously to explain why code does something (complex logic, non-obvious decisions), not what it does (which should be clear from the code itself). Avoid outdated or redundant comments.  
 
-# Code Organization: Continue to organize code into logical modules and classes as outlined in the project structure
+# Code Organization: Continue to organize code into logical mtodules and classes as outlined in the project structure
 
