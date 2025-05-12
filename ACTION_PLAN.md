@@ -39,8 +39,8 @@ This file contains the current prioritized action plan for the MyBabbittQuote pr
 
 ### 2. Testing
 - [X] Centralize test files in appropriate directories
-- [ ] Add unit tests for core business logic
-- [ ] Add integration tests for database operations
+- [X] Add unit tests for core business logic
+- [X] Add integration tests for database operations
 - [ ] Add UI component tests
 - [ ] Set up CI/CD pipeline
 - [ ] Add test coverage reporting
