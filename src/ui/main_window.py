@@ -7,6 +7,7 @@ from PySide6.QtCore import Qt, Slot, QTimer
 from src.ui.product_tab import ProductTab
 from src.ui.specifications_tab import SpecificationsTab
 from src.ui.quote_tab import QuoteTab
+from src.ui.spare_parts_tab import SparePartsTab
 
 class MainWindow(QMainWindow):
     """Main application window for the Babbitt Quote Generator."""
@@ -35,10 +36,13 @@ class MainWindow(QMainWindow):
         self.specifications_tab = SpecificationsTab()
         print("Creating QuoteTab...")
         self.quote_tab = QuoteTab()
+        print("Creating SparePartsTab...")
+        self.spare_parts_tab = SparePartsTab()
         
         self.tabs.addTab(self.product_tab, "Product Selection")
         self.tabs.addTab(self.specifications_tab, "Specifications")
         self.tabs.addTab(self.quote_tab, "Quote Summary")
+        self.tabs.addTab(self.spare_parts_tab, "Spare Parts")
         
         # Bottom buttons for navigation and actions
         self.button_layout = QHBoxLayout()
@@ -59,6 +63,8 @@ class MainWindow(QMainWindow):
         print("Connecting signals...")
         self.product_tab.product_selected.connect(self.on_product_selected)
         self.specifications_tab.specs_updated.connect(self.on_specs_updated)
+        self.specifications_tab.add_to_quote.connect(self.on_specs_add_to_quote)
+        self.spare_parts_tab.part_selected.connect(self.on_spare_part_selected)
         
         # Connect button signals
         self.next_button.clicked.connect(self.next_tab)
@@ -192,6 +198,80 @@ class MainWindow(QMainWindow):
         # For now, we'll just show a success message
         QMessageBox.information(self, "Export PDF", 
             f"Quote has been exported to {file_path}")
+    
+    @Slot(dict)
+    def on_spare_part_selected(self, part_info):
+        """Handle spare part selection."""
+        print(f"Spare part selected: {part_info['part_number']}")
+        
+        # Add the spare part to the quote
+        self.quote_tab.add_spare_part_to_quote(part_info)
+        
+        # Switch to quote tab to see the added part
+        self.tabs.setCurrentWidget(self.quote_tab)
+    
+    @Slot(dict)
+    def on_specs_add_to_quote(self, specs):
+        """Handle adding specifications to quote."""
+        print("Adding specifications to quote")
+        
+        # Get the current product info
+        product_info = self.product_tab.get_selected_product()
+        
+        # Create a description for the quote item
+        if product_info and product_info.get("model"):
+            # Add the current product and specs to the quote items
+            self._add_product_to_quote_items(product_info, specs)
+            
+            # Show success message to user
+            QMessageBox.information(self, "Added to Quote", 
+                f"{product_info.get('model')} has been added to your quote.")
+            
+            # Switch to the Quote tab
+            self.tabs.setCurrentWidget(self.quote_tab)
+        else:
+            QMessageBox.warning(self, "No Product Selected", 
+                "Please select a product before adding to quote.")
+    
+    def _add_product_to_quote_items(self, product_info, specs):
+        """Add the current product as an item in the quote items table."""
+        # Calculate price based on specs
+        base_price = 0.0
+        options_price = 0.0
+        
+        # This would normally be done in a proper pricing module
+        model = product_info.get("model", "")
+        base_model = model.split()[0] if model else ""
+        
+        # Set base prices for each model (simplified example)
+        model_prices = {
+            "LS2000": 800.0,  # General Purpose
+            "LS2100": 700.0,  # Loop Powered
+            "LS6000": 900.0,  # Heavy Duty
+            "LS7000": 1200.0, # Advanced Features
+            "LS7000/2": 1500.0, # Dual Point
+            "LS8000": 1100.0, # Remote Mounted
+            "LS8000/2": 1400.0, # Remote Mounted Dual Point
+            "LT9000": 1800.0,  # Level Transmitter
+            "FS10000": 950.0   # Flow Switch
+        }
+        
+        # Get base price for the model
+        base_price = model_prices.get(base_model, 0.0)
+        
+        # This is a simplified version - in a real app, you'd have more sophisticated pricing
+        # Call the appropriate method in the quote tab to add this product
+        item_info = {
+            "type": "product",
+            "id": base_model,
+            "name": model,
+            "description": f"{model} - {product_info.get('category', '')}",
+            "price": base_price + options_price,
+            "specifications": specs
+        }
+        
+        # Add to quote items table
+        self.quote_tab.add_spare_part_to_quote(item_info)
     
     def setup_styles(self):
         """Apply stylesheets for a clean UI."""

@@ -6,9 +6,12 @@ from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, 
     QComboBox, QGroupBox, QFormLayout, QSpacerItem,
     QSizePolicy, QSlider, QSpinBox, QDoubleSpinBox,
-    QCheckBox, QScrollArea, QLineEdit
+    QCheckBox, QScrollArea, QLineEdit, QPushButton
 )
 from PySide6.QtCore import Qt, Signal
+
+from src.core.database import SessionLocal
+from src.core.services.product_service import ProductService
 
 
 class SpecificationsTab(QWidget):
@@ -16,12 +19,14 @@ class SpecificationsTab(QWidget):
     
     # Signals
     specs_updated = Signal(dict)  # specifications dictionary
+    add_to_quote = Signal(dict)  # Signal to add current specs to quote
     
     def __init__(self, parent=None):
         super().__init__(parent)
         self.init_ui()
         self.current_product = None
         self.specs_widgets = {}  # Store references to specification widgets
+        self.product_service = ProductService()
         
     def init_ui(self):
         """Initialize the UI components."""
@@ -43,24 +48,25 @@ class SpecificationsTab(QWidget):
         
         self.scroll.setWidget(self.scroll_content)
         main_layout.addWidget(self.scroll)
-    
-    def clear_specifications(self):
-        """Clear all specification widgets."""
-        # Remove all widgets from the layout
-        while self.specs_layout.count():
-            item = self.specs_layout.takeAt(0)
-            if item.widget():
-                item.widget().deleteLater()
         
-        # Clear the specs widgets dictionary
-        self.specs_widgets.clear()
-        
-        # Add placeholder back
-        self.placeholder_label = QLabel(
-            "Please select a product in the Product Selection tab to configure specifications."
-        )
-        self.placeholder_label.setAlignment(Qt.AlignCenter)
-        self.specs_layout.addWidget(self.placeholder_label)
+        # Add to Quote button
+        self.add_to_quote_button = QPushButton("Add to Quote")
+        self.add_to_quote_button.setObjectName("add_to_quote_button")
+        self.add_to_quote_button.setStyleSheet("""
+            #add_to_quote_button {
+                background-color: #08D13F;
+                color: white;
+                font-weight: bold;
+                padding: 10px 20px;
+                border-radius: 5px;
+            }
+            #add_to_quote_button:hover {
+                background-color: #05A32F;
+            }
+        """)
+        self.add_to_quote_button.clicked.connect(self.on_add_to_quote)
+        self.add_to_quote_button.setEnabled(False)  # Initially disabled until product is selected
+        main_layout.addWidget(self.add_to_quote_button)
     
     def update_for_product(self, category, model):
         """Update specifications based on selected product."""
@@ -68,9 +74,6 @@ class SpecificationsTab(QWidget):
         
         # Clear existing specs
         self.clear_specifications()
-        
-        # In a real implementation, this would fetch specifications from your service
-        # For now, we'll create some example specifications based on the product
         
         # Remove placeholder
         if self.placeholder_label:
@@ -109,6 +112,9 @@ class SpecificationsTab(QWidget):
                 widget.stateChanged.connect(self.on_specs_changed)
             elif isinstance(widget, QSlider):
                 widget.valueChanged.connect(self.on_specs_changed)
+        
+        # Enable add to quote button
+        self.add_to_quote_button.setEnabled(True)
     
     def add_voltage_section(self):
         """Add voltage selection section."""
@@ -116,7 +122,20 @@ class SpecificationsTab(QWidget):
         layout = QFormLayout()
         
         voltage = QComboBox()
-        voltage.addItems(["24 VDC", "120 VAC", "240 VAC"])
+        
+        # Get available voltages for the current product family
+        if self.current_product and "model" in self.current_product:
+            # Extract the base product family (e.g., "LS2000" from "LS2000 - General Purpose")
+            product_family = self.current_product["model"].split()[0]
+            
+            # Get available voltages from the database
+            db = SessionLocal()
+            try:
+                available_voltages = self.product_service.get_available_voltages(db, product_family)
+                voltage.addItems(available_voltages)
+            finally:
+                db.close()
+        
         layout.addRow("Supply Voltage:", voltage)
         self.specs_widgets["voltage"] = voltage
         
@@ -129,21 +148,22 @@ class SpecificationsTab(QWidget):
         layout = QFormLayout()
         
         material = QComboBox()
-        material.addItems(["S - 316 Stainless Steel", "A - Aluminum", "H - Hastelloy C"])
+        
+        # Get available materials for the current product family
+        if self.current_product and "model" in self.current_product:
+            # Extract the base product family (e.g., "LS2000" from "LS2000 - General Purpose")
+            product_family = self.current_product["model"].split()[0]
+            
+            # Get available materials from the database
+            db = SessionLocal()
+            try:
+                available_materials = self.product_service.get_available_materials_for_product(db, product_family)
+                material.addItems([m['display_name'] for m in available_materials])
+            finally:
+                db.close()
+        
         layout.addRow("Material:", material)
         self.specs_widgets["material"] = material
-        
-        # Add process material type if it's a level switch
-        if "Level Switch" in self.current_product.get("category", ""):
-            material_type = QComboBox()
-            material_type.addItems(["Liquid", "Powder", "Granular", "Slurry"])
-            layout.addRow("Process Material Type:", material_type)
-            self.specs_widgets["material_type"] = material_type
-            
-            viscosity = QComboBox()
-            viscosity.addItems(["Low", "Medium", "High", "Very High"])
-            layout.addRow("Viscosity:", viscosity)
-            self.specs_widgets["viscosity"] = viscosity
         
         group.setLayout(layout)
         self.specs_layout.addWidget(group)
@@ -168,22 +188,59 @@ class SpecificationsTab(QWidget):
         self.specs_layout.addWidget(group)
     
     def add_connection_section(self):
-        """Add connection section."""
+        """Add detailed connection section for flange and Tri-Clamp options."""
         group = QGroupBox("Connection")
         layout = QFormLayout()
-        
-        connection = QComboBox()
-        connection.addItems(["1/2\" NPT", "3/4\" NPT", "1\" NPT", "1.5\" NPT", "2\" NPT", "Flanged"])
-        layout.addRow("Process Connection:", connection)
-        self.specs_widgets["connection"] = connection
-        
-        # Add mounting type for applicable products
-        if "Level Switch" in self.current_product.get("category", ""):
-            mounting = QComboBox()
-            mounting.addItems(["Top Mount", "Side Mount", "Angled"])
-            layout.addRow("Mounting Type:", mounting)
-            self.specs_widgets["mounting"] = mounting
-        
+
+        # Connection type selection
+        connection_type = QComboBox()
+        connection_type.addItems(["NPT", "Flange", "Tri-Clamp"])
+        layout.addRow("Connection Type:", connection_type)
+        self.specs_widgets["connection_type"] = connection_type
+
+        # NPT size selection
+        npt_size = QComboBox()
+        npt_size.addItems(["1/2\" NPT", "3/4\" NPT", "1\" NPT", "1.5\" NPT", "2\" NPT"])
+        layout.addRow("NPT Size:", npt_size)
+        self.specs_widgets["npt_size"] = npt_size
+
+        # Flange rating and size
+        flange_rating = QComboBox()
+        flange_rating.addItems(["150#", "300#"])
+        layout.addRow("Flange Rating:", flange_rating)
+        self.specs_widgets["flange_rating"] = flange_rating
+
+        flange_size = QComboBox()
+        flange_size.addItems(['1"', '1.5"', '2"', '3"', '4"'])
+        layout.addRow("Flange Size:", flange_size)
+        self.specs_widgets["flange_size"] = flange_size
+
+        # Tri-Clamp size
+        triclamp_size = QComboBox()
+        triclamp_size.addItems(['1.5"', '2"'])
+        layout.addRow("Tri-Clamp Size:", triclamp_size)
+        self.specs_widgets["triclamp_size"] = triclamp_size
+
+        # Show/hide widgets based on connection type
+        def update_connection_fields():
+            if connection_type.currentText() == "NPT":
+                npt_size.show()
+                flange_rating.hide()
+                flange_size.hide()
+                triclamp_size.hide()
+            elif connection_type.currentText() == "Flange":
+                npt_size.hide()
+                flange_rating.show()
+                flange_size.show()
+                triclamp_size.hide()
+            elif connection_type.currentText() == "Tri-Clamp":
+                npt_size.hide()
+                flange_rating.hide()
+                flange_size.hide()
+                triclamp_size.show()
+        connection_type.currentIndexChanged.connect(update_connection_fields)
+        update_connection_fields()
+
         group.setLayout(layout)
         self.specs_layout.addWidget(group)
     
@@ -275,24 +332,6 @@ class SpecificationsTab(QWidget):
         group.setLayout(layout)
         self.specs_layout.addWidget(group)
     
-    # The following methods are kept for backward compatibility with 
-    # existing code but are no longer used directly
-    
-    def add_point_level_specs(self):
-        pass
-        
-    def add_continuous_measurement_specs(self):
-        pass
-    
-    def add_multi_point_specs(self):
-        pass
-    
-    def add_magnetic_level_specs(self):
-        pass
-    
-    def add_dust_emissions_specs(self):
-        pass
-    
     def on_specs_changed(self):
         """Handle changes to specification values."""
         # Get all current specification values
@@ -319,3 +358,54 @@ class SpecificationsTab(QWidget):
                 specs[name] = widget.text()
         
         return specs 
+    
+    def on_add_to_quote(self):
+        """Handle add to quote button click."""
+        # Get the current specifications
+        specs = self.get_specifications()
+        
+        # Emit the add_to_quote signal with the specifications
+        self.add_to_quote.emit(specs)
+        
+        # Reset specifications to default values
+        self.reset_to_defaults()
+    
+    def reset_to_defaults(self):
+        """Reset all specifications to their default values."""
+        try:
+            # Reset all widgets to default values
+            for name, widget in self.specs_widgets.items():
+                if isinstance(widget, QComboBox):
+                    widget.setCurrentIndex(0)  # Set to first item
+                elif isinstance(widget, (QSpinBox, QDoubleSpinBox)):
+                    if "length" in name:
+                        if name == "probe_length":
+                            widget.setValue(12)  # Default probe length
+                        elif name == "cable_length":
+                            widget.setValue(10)  # Default cable length
+                        else:
+                            widget.setValue(widget.minimum())  # Set to minimum value
+                    else:
+                        widget.setValue(widget.minimum())  # Set to minimum value
+                elif isinstance(widget, QCheckBox):
+                    widget.setChecked(False)  # Uncheck
+                elif isinstance(widget, QSlider):
+                    widget.setValue(widget.minimum())  # Set to minimum value
+            
+            # Emit signal with updated specifications
+            self.on_specs_changed()
+            
+            print("Specifications reset to defaults")
+        except Exception as e:
+            print(f"Error resetting specifications: {e}")
+    
+    def clear_specifications(self):
+        """Clear all specification widgets."""
+        # Delete all widgets in the specs layout
+        while self.specs_layout.count():
+            item = self.specs_layout.takeAt(0)
+            if item.widget():
+                item.widget().deleteLater()
+        
+        # Clear the specs widgets dictionary
+        self.specs_widgets.clear() 

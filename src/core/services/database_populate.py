@@ -16,7 +16,9 @@ from src.core.models import (
     ProductFamily,
     ProductVariant,
     Option,
-    Customer
+    Customer,
+    SparePart,
+    ConnectionOption
 )
 
 # Set up logging
@@ -360,6 +362,273 @@ def remove_obsolete_products(db: Session):
     db.commit()
     logger.info(f"Removed {len(obsolete_families)} obsolete product families and their variants")
 
+def populate_spare_parts(db: Session):
+    """Populate spare parts table with initial data."""
+    # Check if spare parts already exist
+    existing_count = db.query(SparePart).count()
+    if existing_count > 0:
+        logger.info(f"SparePart table already has {existing_count} records. Skipping population.")
+        return
+        
+    # Get product families to associate spare parts with
+    product_families = db.query(ProductFamily).all()
+    product_family_map = {family.name: family.id for family in product_families}
+    
+    # Spare parts data structured by product family and category
+    spare_parts_data = [
+        # LS2000 spare parts
+        {
+            "product_family": "LS2000",
+            "part_number": "LS2000-ELECTRONICS",
+            "name": "Electronics Assembly",
+            "description": "Electronics circuit board assembly for LS2000",
+            "price": 265.0,
+            "category": "electronics"
+        },
+        {
+            "product_family": "LS2000",
+            "part_number": "LS2000-S-PROBE-10",
+            "name": "Stainless Steel Probe Assembly - 10\"",
+            "description": "10\" 316 Stainless Steel probe assembly for LS2000",
+            "price": 195.0,
+            "category": "probe_assembly"
+        },
+        {
+            "product_family": "LS2000",
+            "part_number": "LS2000-U-PROBE-4",
+            "name": "UHMWPE Blind End Probe Assembly - 4\"",
+            "description": "4\" UHMWPE blind end probe assembly for LS2000",
+            "price": 210.0,
+            "category": "probe_assembly"
+        },
+        {
+            "product_family": "LS2000",
+            "part_number": "LS2000-T-PROBE-4",
+            "name": "Teflon Blind End Probe Assembly - 4\"",
+            "description": "4\" Teflon blind end probe assembly for LS2000",
+            "price": 250.0,
+            "category": "probe_assembly"
+        },
+        {
+            "product_family": "LS2000",
+            "part_number": "LS2000-H-PROBE-10",
+            "name": "Halar Coated Probe Assembly - 10\"",
+            "description": "10\" Halar coated probe assembly for LS2000",
+            "price": 320.0,
+            "category": "probe_assembly"
+        },
+        {
+            "product_family": "LS2000",
+            "part_number": "LS2000-HOUSING",
+            "name": "Standard Housing",
+            "description": "Standard housing for LS2000",
+            "price": 100.0,
+            "category": "housing"
+        },
+        # LS2100 spare parts
+        {
+            "product_family": "LS2100",
+            "part_number": "LS2100-ELECTRONICS",
+            "name": "Loop Powered Electronics Assembly",
+            "description": "Loop powered electronics circuit board assembly for LS2100",
+            "price": 225.0,
+            "category": "electronics"
+        },
+        {
+            "product_family": "LS2100",
+            "part_number": "LS2100-S-PROBE-10",
+            "name": "Stainless Steel Probe Assembly - 10\"",
+            "description": "10\" 316 Stainless Steel probe assembly for LS2100",
+            "price": 220.0,
+            "category": "probe_assembly"
+        },
+        {
+            "product_family": "LS2100",
+            "part_number": "LS2100-H-PROBE-10",
+            "name": "Halar Coated Probe Assembly - 10\"",
+            "description": "10\" Halar coated probe assembly for LS2100",
+            "price": 330.0,
+            "category": "probe_assembly"
+        },
+        {
+            "product_family": "LS2100",
+            "part_number": "LS2100-HOUSING",
+            "name": "Standard Housing",
+            "description": "Standard housing for LS2100",
+            "price": 120.0,
+            "category": "housing"
+        },
+        # LS6000 spare parts
+        {
+            "product_family": "LS6000",
+            "part_number": "LS6000-ELECTRONICS",
+            "name": "Electronics Assembly",
+            "description": "Electronics circuit board assembly for LS6000",
+            "price": 295.0,
+            "category": "electronics"
+        },
+        {
+            "product_family": "LS6000",
+            "part_number": "LS6000-S-PROBE-10",
+            "name": "Stainless Steel Probe Assembly - 10\"",
+            "description": "10\" 316 Stainless Steel probe assembly for LS6000",
+            "price": 240.0,
+            "category": "probe_assembly"
+        },
+        {
+            "product_family": "LS6000",
+            "part_number": "LS6000-H-PROBE-10",
+            "name": "Halar Coated Probe Assembly - 10\"",
+            "description": "10\" Halar coated probe assembly for LS6000",
+            "price": 370.0,
+            "category": "probe_assembly"
+        },
+        {
+            "product_family": "LS6000",
+            "part_number": "LS6000-HOUSING",
+            "name": "Standard Housing",
+            "description": "Standard housing for LS6000",
+            "price": 140.0,
+            "category": "housing"
+        },
+        
+        # LS7000 spare parts
+        {
+            "product_family": "LS7000",
+            "part_number": "LS7000-PS",
+            "name": "Power Supply",
+            "description": "Power supply for LS7000 (specify voltage when ordering)",
+            "price": 230.0,
+            "category": "electronics"
+        },
+        {
+            "product_family": "LS7000",
+            "part_number": "LS7000/2-DP",
+            "name": "Dual Point Card",
+            "description": "Dual point electronics card for LS7000/2",
+            "price": 255.0,
+            "category": "electronics"
+        },
+        {
+            "product_family": "LS7000",
+            "part_number": "LS7000-H-PROBE-10",
+            "name": "Halar Coated Probe Assembly - 10\"",
+            "description": "10\" Halar coated probe assembly for LS7000",
+            "price": 370.0,
+            "category": "probe_assembly"
+        },
+        {
+            "product_family": "LS7000",
+            "part_number": "LS7000-HOUSING",
+            "name": "Standard Housing",
+            "description": "Standard housing for LS7000",
+            "price": 140.0,
+            "category": "housing"
+        },
+        {
+            "product_family": "LS7000",
+            "part_number": "FUSE-1/2AMP",
+            "name": "Fuse - 1/2 AMP",
+            "description": "Replacement 1/2 AMP fuse for LS7000",
+            "price": 10.0,
+            "category": "electronics"
+        },
+        
+        # LT9000 spare parts
+        {
+            "product_family": "LT9000",
+            "part_number": "LT9000-MA",
+            "name": "MA Plug-in Card",
+            "description": "Milliamp output plug-in card for LT9000",
+            "price": 295.0,
+            "category": "electronics"
+        },
+        {
+            "product_family": "LT9000",
+            "part_number": "LT9000-BB",
+            "name": "Power Supply",
+            "description": "Power supply for LT9000 (specify voltage when ordering)",
+            "price": 295.0,
+            "category": "electronics"
+        },
+        {
+            "product_family": "LT9000",
+            "part_number": "LT9000-H-PROBE-10",
+            "name": "Halar Coated Probe Assembly - 10\"",
+            "description": "10\" Halar coated probe assembly for LT9000",
+            "price": 370.0,
+            "category": "probe_assembly"
+        },
+        {
+            "product_family": "LT9000",
+            "part_number": "LT9000-HOUSING",
+            "name": "Standard Housing",
+            "description": "Standard housing for LT9000",
+            "price": 140.0,
+            "category": "housing"
+        },
+        {
+            "product_family": "LT9000",
+            "part_number": "FUSE-1/2AMP",
+            "name": "Fuse - 1/2 AMP",
+            "description": "Replacement 1/2 AMP fuse for LT9000",
+            "price": 10.0,
+            "category": "electronics"
+        },
+    ]
+    
+    # Create spare parts objects
+    spare_parts = []
+    for part_data in spare_parts_data:
+        product_family_id = product_family_map.get(part_data["product_family"])
+        
+        if product_family_id is None:
+            logger.warning(f"Product family {part_data['product_family']} not found for spare part {part_data['part_number']}")
+            continue
+            
+        spare_part = SparePart(
+            part_number=part_data["part_number"],
+            name=part_data["name"],
+            description=part_data["description"],
+            price=part_data["price"],
+            product_family_id=product_family_id,
+            category=part_data["category"]
+        )
+        spare_parts.append(spare_part)
+    
+    # Add spare parts to database
+    db.add_all(spare_parts)
+    db.commit()
+    logger.info(f"Added {len(spare_parts)} spare parts")
+
+def populate_connection_options(db: Session):
+    """Populate connection options table with detailed flange and Tri-Clamp options."""
+    existing_count = db.query(ConnectionOption).count()
+    if existing_count > 0:
+        logger.info(f"ConnectionOption table already has {existing_count} records. Skipping population.")
+        return
+
+    options = [
+        # Flange 150#
+        {"type": "Flange", "rating": "150#", "size": '1"', "price": 0.0, "product_families": "LS2000,LS6000"},
+        {"type": "Flange", "rating": "150#", "size": '1.5"', "price": 0.0, "product_families": "LS2000,LS6000"},
+        {"type": "Flange", "rating": "150#", "size": '2"', "price": 0.0, "product_families": "LS2000,LS6000"},
+        {"type": "Flange", "rating": "150#", "size": '3"', "price": 0.0, "product_families": "LS2000,LS6000"},
+        {"type": "Flange", "rating": "150#", "size": '4"', "price": 0.0, "product_families": "LS2000,LS6000"},
+        # Flange 300#
+        {"type": "Flange", "rating": "300#", "size": '1"', "price": 0.0, "product_families": "LS2000,LS6000"},
+        {"type": "Flange", "rating": "300#", "size": '1.5"', "price": 0.0, "product_families": "LS2000,LS6000"},
+        {"type": "Flange", "rating": "300#", "size": '2"', "price": 0.0, "product_families": "LS2000,LS6000"},
+        {"type": "Flange", "rating": "300#", "size": '3"', "price": 0.0, "product_families": "LS2000,LS6000"},
+        {"type": "Flange", "rating": "300#", "size": '4"', "price": 0.0, "product_families": "LS2000,LS6000"},
+        # Tri-Clamp
+        {"type": "Tri-Clamp", "rating": None, "size": '1.5"', "price": 280.0, "product_families": "LS2000,LS6000"},
+        {"type": "Tri-Clamp", "rating": None, "size": '2"', "price": 330.0, "product_families": "LS2000,LS6000"},
+    ]
+    db.add_all([ConnectionOption(**opt) for opt in options])
+    db.commit()
+    logger.info(f"Added {len(options)} connection options")
+
 def populate_database():
     """Populate the database with initial data."""
     db = SessionLocal()
@@ -369,7 +638,10 @@ def populate_database():
         populate_material_availability(db)
         populate_from_price_list(db)
         populate_options(db)
+        populate_sample_customers(db)
         remove_obsolete_products(db)
+        populate_spare_parts(db)
+        populate_connection_options(db)
         logger.info("Database population completed successfully")
     except Exception as e:
         logger.error(f"Error populating database: {e}")

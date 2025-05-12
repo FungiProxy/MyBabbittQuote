@@ -6,22 +6,25 @@ from typing import Optional
 from sqlalchemy.orm import Session
 
 from src.core.models import Material, Product, StandardLength, MaterialAvailability
+from src.core.models.connection_option import ConnectionOption
 
 
 def calculate_product_price(
     db: Session, 
     product_id: int, 
     length: Optional[float] = None,
-    material_override: Optional[str] = None
+    material_override: Optional[str] = None,
+    specs: Optional[dict] = None
 ) -> float:
     """
-    Calculate the price of a product with the given configuration.
+    Calculate the total price for a product, including options and connection selection.
     
     Args:
         db: Database session
         product_id: ID of the product
         length: Length in inches (if applicable)
         material_override: Material code to override the product's default material
+        specs: Dictionary containing product specifications
         
     Returns:
         Calculated price
@@ -121,6 +124,10 @@ def calculate_product_price(
         if not is_standard:
             price += material.nonstandard_length_surcharge
     
+    # Add connection option price if specs provided
+    if specs:
+        price += get_connection_option_price(db, specs)
+    
     return price
 
 
@@ -149,3 +156,17 @@ def calculate_option_price(
         return option_price * (length / 12)
     else:
         return option_price  # Default to fixed price 
+
+
+def get_connection_option_price(db, specs):
+    connection_type = specs.get("connection_type")
+    if connection_type == "Flange":
+        rating = specs.get("flange_rating")
+        size = specs.get("flange_size")
+        option = db.query(ConnectionOption).filter_by(type="Flange", rating=rating, size=size).first()
+        return option.price if option else 0.0
+    elif connection_type == "Tri-Clamp":
+        size = specs.get("triclamp_size")
+        option = db.query(ConnectionOption).filter_by(type="Tri-Clamp", size=size).first()
+        return option.price if option else 0.0
+    return 0.0 

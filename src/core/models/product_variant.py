@@ -19,6 +19,7 @@ class ProductFamily(Base):
     
     # Relationships
     variants = relationship("ProductVariant", back_populates="product_family")
+    spare_parts = relationship("SparePart", back_populates="product_family")
     
     def __repr__(self):
         return f"<ProductFamily(id={self.id}, name='{self.name}', category='{self.category}')>"

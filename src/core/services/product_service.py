@@ -5,7 +5,7 @@ from typing import List, Optional, Dict, Any, Tuple
 
 from sqlalchemy.orm import Session
 
-from src.core.models import Product, Material, Option, MaterialAvailability
+from src.core.models import Product, Material, Option, MaterialAvailability, VoltageOption, MaterialOption
 from src.core.pricing import calculate_product_price
 from src.utils.db_utils import get_by_id, get_all
 
@@ -59,51 +59,49 @@ class ProductService:
         return get_all(db, Material)
     
     @staticmethod
-    def get_available_materials_for_product(db: Session, product_type: str) -> List[Material]:
+    def get_available_voltages(db: Session, product_family: str) -> List[str]:
         """
-        Get materials that are available for a specific product type.
+        Get available voltages for a product family.
         
         Args:
             db: Database session
-            product_type: The product type (e.g., "LS2000", "LS7000/2")
+            product_family: Product family code (e.g., "LS2000", "LS7000")
             
         Returns:
-            List of Material objects available for the product type
+            List of available voltage options
         """
-        # Find all material codes available for this product type
-        available_material_codes = db.query(MaterialAvailability.material_code).filter(
-            MaterialAvailability.product_type == product_type,
-            MaterialAvailability.is_available == True
+        voltages = db.query(VoltageOption).filter(
+            VoltageOption.product_family == product_family,
+            VoltageOption.is_available == 1
         ).all()
         
-        # Extract the material codes from the query results
-        material_codes = [code[0] for code in available_material_codes]
-        
-        # Get the material objects for these codes
-        if material_codes:
-            materials = db.query(Material).filter(Material.code.in_(material_codes)).all()
-            return materials
-        return []
+        return [v.voltage for v in voltages]
     
     @staticmethod
-    def is_material_available_for_product(db: Session, material_code: str, product_type: str) -> bool:
+    def get_available_materials_for_product(db: Session, product_family: str) -> List[Dict[str, Any]]:
         """
-        Check if a specific material is available for a specific product type.
+        Get available materials for a product family.
         
         Args:
             db: Database session
-            material_code: The material code (e.g., "S", "H", "U")
-            product_type: The product type (e.g., "LS2000", "LS7000/2")
+            product_family: Product family code (e.g., "LS2000", "LS7000")
             
         Returns:
-            True if the material is available for the product type, False otherwise
+            List of dictionaries containing material information
         """
-        availability = db.query(MaterialAvailability).filter(
-            MaterialAvailability.material_code == material_code,
-            MaterialAvailability.product_type == product_type
-        ).first()
+        materials = db.query(MaterialOption).filter(
+            MaterialOption.product_family == product_family,
+            MaterialOption.is_available == 1
+        ).all()
         
-        return availability is not None and availability.is_available
+        return [
+            {
+                'code': m.material_code,
+                'display_name': m.display_name,
+                'base_price': m.base_price
+            }
+            for m in materials
+        ]
     
     @staticmethod
     def get_product_options(

@@ -36,7 +36,8 @@ def check_tables_exist():
             "customers",
             "quotes",
             "quote_items",
-            "quote_item_options"
+            "quote_item_options",
+            "spare_parts"
         ]
         
         # Check if all expected tables exist
