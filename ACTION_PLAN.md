@@ -1,6 +1,6 @@
 # Project Action Plan
 
-_Last updated: {{DATE}}_
+_Last updated: May 12th, 2025_
 
 ## Overview
 This file contains the current prioritized action plan for the MyBabbittQuote project. It is intended to help new contributors and AI agents quickly understand the project's status, priorities, and next steps. Please update this file as progress is made or priorities change.
@@ -9,9 +9,9 @@ This file contains the current prioritized action plan for the MyBabbittQuote pr
 
 ## Project State
 - **Core business logic:** Implemented (pricing, quoting, models)
-- **UI:** Functional, but large files and some missing features
+- **UI:** Functional, well-documented, but some missing features
 - **Testing:** Present, but needs centralization and more coverage
-- **Documentation:** Needs improvement
+- **Documentation:** Good coverage of core models and UI components
 - **Export:** Basic structure present, needs full implementation
 
 ---
@@ -19,54 +19,105 @@ This file contains the current prioritized action plan for the MyBabbittQuote pr
 ## Prioritized Action Plan
 
 ### 1. Documentation & Onboarding
-- [ ] Expand `README.md` with project overview, setup, usage, and testing instructions
-- [ ] Add docstrings to all public classes, methods, and complex functions
-- [ ] Document environment setup and dependencies
+- [X] Expand `README.md` with project overview, setup, usage, and testing instructions
+- [X] Add docstrings to core models
+- [X] Complete docstrings for remaining models
+- [X] Document UI components and their interactions
+  - [X] MainWindow: Tab management and core functionality
+  - [X] ProductTab: Product selection interface
+  - [X] SpecificationsTab: Product configuration form
+  - [X] QuoteTab: Quote management and pricing
+  - [X] SparePartsTab: Spare parts catalog and selection
+- [ ] Document service layer classes
+  - [X] QuoteService
+  - [X] ProductService
+  - [X] MaterialService
+  - [X] CustomerService
+- [X] Create developer guide for common tasks
+- [X] Add architecture overview diagram
+- [X] Document database schema and relationships
 
-### 2. Testing & Quality Assurance
-- [ ] Move all test scripts to the `tests/` directory and use consistent naming (`test_*.py`)
-- [ ] Increase unit test coverage for business logic (pricing, quote creation, option compatibility)
-- [ ] Add UI tests for critical workflows (consider `pytest-qt` or `pytest-pyside6`)
-- [ ] Use fixtures/mocks to isolate tests from production data
+### 2. Testing
+- [ ] Centralize test files in appropriate directories
+- [ ] Add unit tests for core business logic
+- [ ] Add integration tests for database operations
+- [ ] Add UI component tests
+- [ ] Set up CI/CD pipeline
+- [ ] Add test coverage reporting
+- [ ] Document testing strategy and procedures
 
-### 3. Code Organization & Refactoring
+### 3. UI Improvements
+- [ ] Break large UI files into smaller components
+- [ ] Add loading indicators for database operations
+- [ ] Improve error handling and user feedback
+- [ ] Add form validation
+- [ ] Implement undo/redo functionality
+- [ ] Add keyboard shortcuts
+- [ ] Improve accessibility
+
+### 4. Export Functionality
+- [ ] Complete PDF export implementation
+- [ ] Add customizable templates
+- [ ] Add preview functionality
+- [ ] Support multiple export formats
+- [ ] Add batch export capability
+- [ ] Add email integration
+
+### 5. Database & Performance
+- [ ] Optimize database queries
+- [ ] Add database indexing
+- [ ] Implement caching for frequently accessed data
+- [ ] Add database migration scripts
+- [ ] Add backup/restore functionality
+- [ ] Document database maintenance procedures
+
+### 6. Security
+- [ ] Implement user authentication
+- [ ] Add role-based access control
+- [ ] Add audit logging
+- [ ] Implement secure storage for sensitive data
+- [ ] Add input validation and sanitization
+- [ ] Document security procedures
+
+### 7. Code Organization & Refactoring
 - [ ] Refactor large UI files into smaller, focused components or widgets
 - [ ] Consider using service classes (not just static methods) for extensibility
 - [ ] Ensure all subdirectories have `__init__.py` for explicit package structure
 
-### 4. Security & Input Validation
-- [ ] Add input validation for all user inputs (UI forms, file uploads, etc.)
-- [ ] Replace `print` statements with proper logging and user-friendly error messages
-- [ ] Use environment variables for secrets and sensitive settings
-
-### 5. Business Logic Improvements
+### 8. Business Logic Improvements
 - [ ] Move hardcoded pricing rules to configuration files or database tables
 - [ ] Add business rule validation (e.g., valid product/material combinations)
 - [ ] Optimize database access (profile for N+1 queries, use eager loading, cache expensive lookups)
 
-### 6. Dependency & Build Management
+### 9. Dependency & Build Management
 - [ ] Pin dependency versions more strictly in `requirements.txt`
 - [ ] Consider using `pip-tools` or `poetry` for dependency management and lock files
 
-### 7. UI/UX Enhancements
+### 10. UI/UX Enhancements
 - [ ] Use a resource file or stylesheet for consistent UI theming
 - [ ] Implement dynamic dropdowns/radio buttons for product-specific options
 - [ ] Review UI for accessibility best practices
 
-### 8. Export & Integration
+### 11. Export & Integration
 - [ ] Encapsulate all export logic in `src/export/`
 - [ ] Decouple export logic from UI to allow CLI or API-triggered exports
 
-### 9. Performance Optimization
+### 12. Performance Optimization
 - [ ] Profile and optimize slow code paths
 - [ ] Ensure frequently queried fields are indexed in the database
 
-### 10. Advanced Enhancements (Optional/Future)
+### 13. Advanced Enhancements (Optional/Future)
 - [ ] Consider using `pydantic` or `dynaconf` for configuration management
 - [ ] Add authentication/authorization if multi-user
 - [ ] Build admin UI for managing products, materials, and pricing rules
 
 ---
+
+## Notes
+- Priority order may change based on business needs
+- Each task should include appropriate documentation updates
+- Consider backwards compatibility when making changes
+- Follow established coding standards and patterns
 
 ## How to Use This Plan
 - Check off items as they are completed.

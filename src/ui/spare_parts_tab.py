@@ -1,5 +1,16 @@
 """
-Spare Parts Tab for the Babbitt Quote Generator
+Spare Parts Tab for the Babbitt Quote Generator.
+
+This module defines the spare parts management interface for the quote generator.
+It provides functionality for browsing, filtering, and selecting spare parts
+to add to quotes, including:
+- Product family and category filtering
+- Detailed part information display
+- Part selection and quote integration
+- Debug information for troubleshooting
+
+The tab integrates with the database to provide real-time access to the
+spare parts catalog and maintains consistency with the quote management system.
 """
 
 from PySide6.QtWidgets import (
@@ -18,19 +29,60 @@ from src.core.models import ProductFamily, SparePart
 
 
 class SparePartsTab(QWidget):
-    """Spare parts tab for the quote generator."""
+    """
+    Spare parts management tab for the quote generator.
+    
+    This tab provides a comprehensive interface for managing spare parts,
+    including browsing the catalog, filtering parts by various criteria,
+    viewing detailed part information, and adding parts to quotes.
+    
+    The tab maintains a connection to the database for real-time access
+    to the spare parts catalog and integrates with the quote management
+    system for seamless part addition.
+    
+    Attributes:
+        db (Session): Database session for data access
+        spare_part_service (SparePartService): Service for spare part operations
+        family_filter (QComboBox): Dropdown for product family filtering
+        category_filter (QComboBox): Dropdown for category filtering
+        parts_table (QTableWidget): Table displaying spare parts
+        part_number_label (QLabel): Label showing selected part number
+        part_name_label (QLabel): Label showing selected part name
+        part_description_label (QLabel): Label showing part description
+        part_price_label (QLabel): Label showing part price
+        part_family_label (QLabel): Label showing product family
+        part_category_label (QLabel): Label showing part category
+        add_to_quote_btn (QPushButton): Button to add part to quote
+    
+    Signals:
+        part_selected (dict): Emitted when a spare part is selected
+    """
     
     # Signals
     part_selected = Signal(dict)  # part info dictionary
     
     def __init__(self, parent=None):
+        """
+        Initialize the SparePartsTab.
+        
+        Args:
+            parent (QWidget, optional): Parent widget. Defaults to None.
+        """
         super().__init__(parent)
         self.db = SessionLocal()
         self.spare_part_service = SparePartService()
         self.init_ui()
         
     def init_ui(self):
-        """Initialize the UI components."""
+        """
+        Initialize the UI components.
+        
+        Sets up the tab's layout with sections for:
+        1. Filtering controls (product family and category)
+        2. Spare parts table
+        3. Part details display
+        4. Action buttons
+        """
         # Main layout
         main_layout = QVBoxLayout(self)
         
@@ -56,15 +108,13 @@ class SparePartsTab(QWidget):
         filter_layout.addWidget(QLabel("Category:"))
         filter_layout.addWidget(self.category_filter)
         
-        # Apply filter button
+        # Filter buttons
         self.apply_filter_btn = QPushButton("Apply Filter")
         filter_layout.addWidget(self.apply_filter_btn)
         
-        # Reset filter button
         self.reset_filter_btn = QPushButton("Reset")
         filter_layout.addWidget(self.reset_filter_btn)
         
-        # Debug button
         self.debug_btn = QPushButton("Debug Info")
         filter_layout.addWidget(self.debug_btn)
         
@@ -116,19 +166,34 @@ class SparePartsTab(QWidget):
         self.load_spare_parts()
     
     def populate_family_filter(self):
-        """Populate the product family filter dropdown."""
+        """
+        Populate the product family filter dropdown.
+        
+        Queries the database for all product families and adds them
+        to the family filter dropdown.
+        """
         families = self.db.query(ProductFamily).all()
         for family in families:
             self.family_filter.addItem(family.name, family.id)
     
     def populate_category_filter(self):
-        """Populate the category filter dropdown."""
+        """
+        Populate the category filter dropdown.
+        
+        Queries the spare part service for all available categories
+        and adds them to the category filter dropdown.
+        """
         categories = self.spare_part_service.get_spare_part_categories(self.db)
         for category in categories:
             self.category_filter.addItem(category.capitalize(), category)
     
     def load_spare_parts(self):
-        """Load spare parts into the table."""
+        """
+        Load spare parts into the table.
+        
+        Queries all spare parts from the database, sorts them by
+        product family and part number, and populates the table.
+        """
         # Clear existing items
         self.parts_table.setRowCount(0)
         
@@ -149,10 +214,7 @@ class SparePartsTab(QWidget):
         # Populate table
         self.parts_table.setRowCount(len(parts))
         for row, part in enumerate(parts):
-            # Get product family name
-            family_name = ""
-            if part.product_family:
-                family_name = part.product_family.name
+            family_name = part.product_family.name if part.product_family else ""
             
             # Create table items
             self.parts_table.setItem(row, 0, QTableWidgetItem(part.part_number))
@@ -165,7 +227,14 @@ class SparePartsTab(QWidget):
             self.parts_table.item(row, 0).setData(Qt.UserRole, part.id)
     
     def show_debug_info(self):
-        """Show debug information about the spare parts."""
+        """
+        Show debug information about spare parts.
+        
+        Displays a message box with detailed information about spare parts,
+        including counts by product family and individual part listings.
+        This is useful for troubleshooting database connectivity and
+        data consistency issues.
+        """
         try:
             # Get counts of spare parts
             all_parts = self.spare_part_service.get_all_spare_parts(self.db)
@@ -192,13 +261,18 @@ class SparePartsTab(QWidget):
             else:
                 debug_info += "\nLS2100 product family not found\n"
             
-            # Show message box with debug info
             QMessageBox.information(self, "Spare Parts Debug Info", debug_info)
         except Exception as e:
             QMessageBox.critical(self, "Error", f"Error getting debug info: {str(e)}")
 
     def apply_filters(self):
-        """Apply selected filters to the spare parts list."""
+        """
+        Apply selected filters to the spare parts list.
+        
+        Filters the spare parts table based on the selected product family
+        and category filters. Updates the table to show only parts matching
+        the selected criteria.
+        """
         # Get filter values
         family_id = self.family_filter.currentData()
         category = self.category_filter.currentData()
@@ -236,10 +310,7 @@ class SparePartsTab(QWidget):
         # Populate table
         self.parts_table.setRowCount(len(parts))
         for row, part in enumerate(parts):
-            # Get product family name
-            family_name = ""
-            if part.product_family:
-                family_name = part.product_family.name
+            family_name = part.product_family.name if part.product_family else ""
             
             # Create table items
             self.parts_table.setItem(row, 0, QTableWidgetItem(part.part_number))

@@ -1,7 +1,21 @@
 """
 Pricing module for calculating product prices with complex rules.
+
+This module handles all pricing calculations for Babbitt International products,
+including material-specific pricing, length-based calculations, non-standard length
+surcharges, and connection options. It implements the business rules for:
+
+- Base price calculations
+- Material-specific pricing (S, H, U, T materials)
+- Length-based price adjustments
+- Non-standard length surcharges
+- Connection option pricing
+- Special customer pricing rules
+
+The pricing logic follows the rules specified in additional_info.txt and
+the standard price list.
 """
-from typing import Optional
+from typing import Optional, Dict, Any
 
 from sqlalchemy.orm import Session
 
@@ -14,24 +28,33 @@ def calculate_product_price(
     product_id: int, 
     length: Optional[float] = None,
     material_override: Optional[str] = None,
-    specs: Optional[dict] = None
+    specs: Optional[Dict[str, Any]] = None
 ) -> float:
     """
-    Calculate the total price for a product, including options and connection selection.
+    Calculate the total price for a product, including material, length, and connection options.
+    
+    This function implements the core pricing logic for Babbitt International products,
+    handling complex rules for different materials and lengths.
     
     Args:
-        db: Database session
-        product_id: ID of the product
-        length: Length in inches (if applicable)
+        db: SQLAlchemy database session
+        product_id: Unique identifier of the product
+        length: Length in inches (if applicable). If None, uses product's base length
         material_override: Material code to override the product's default material
-        specs: Dictionary containing product specifications
+                         (S=Stainless Steel, H=Halar, U=UHMWPE, T=Teflon)
+        specs: Dictionary containing product specifications including connection options
+              Example: {"connection_type": "Flange", "flange_rating": "150#", "flange_size": "2"}
         
     Returns:
-        Calculated price
+        float: Calculated total price including all applicable adjustments
         
     Raises:
-        ValueError: If the product doesn't exist, the material doesn't exist, or the material
+        ValueError: If the product doesn't exist, material doesn't exist, or material
                    is not available for the product
+        
+    Examples:
+        >>> calculate_product_price(db, 1, length=24, material_override="S")
+        >>> calculate_product_price(db, 2, specs={"connection_type": "Tri-Clamp", "triclamp_size": "2"})
     """
     # Get product
     product = db.query(Product).filter(Product.id == product_id).first()
@@ -139,13 +162,24 @@ def calculate_option_price(
     """
     Calculate the price of an option based on its type and parameters.
     
+    Handles different pricing models including fixed prices, per-inch pricing,
+    and per-foot pricing for product options.
+    
     Args:
         option_price: Base price of the option
-        option_price_type: Type of pricing ("fixed", "per_inch", "per_foot")
+        option_price_type: Type of pricing calculation to apply:
+                         - "fixed": Single fixed price
+                         - "per_inch": Price multiplied by length in inches
+                         - "per_foot": Price multiplied by length in feet
         length: Length in inches (required for per_inch and per_foot options)
         
     Returns:
-        Calculated option price
+        float: Calculated option price
+        
+    Examples:
+        >>> calculate_option_price(100.0, "fixed")  # Returns 100.0
+        >>> calculate_option_price(10.0, "per_inch", length=24)  # Returns 240.0
+        >>> calculate_option_price(120.0, "per_foot", length=24)  # Returns 240.0
     """
     if option_price_type == "fixed":
         return option_price
@@ -158,7 +192,36 @@ def calculate_option_price(
         return option_price  # Default to fixed price 
 
 
-def get_connection_option_price(db, specs):
+def get_connection_option_price(db: Session, specs: Dict[str, Any]) -> float:
+    """
+    Calculate the price for connection options based on specifications.
+    
+    Handles pricing for different connection types including flanges and tri-clamp
+    connections with various sizes and ratings.
+    
+    Args:
+        db: SQLAlchemy database session
+        specs: Dictionary containing connection specifications:
+              For Flanges: {
+                  "connection_type": "Flange",
+                  "flange_rating": "150#" | "300#",
+                  "flange_size": "1" | "2" | "3" | "4"
+              }
+              For Tri-Clamp: {
+                  "connection_type": "Tri-Clamp",
+                  "triclamp_size": "1.5" | "2" | "3"
+              }
+        
+    Returns:
+        float: Price of the connection option, 0.0 if not found or not applicable
+        
+    Examples:
+        >>> get_connection_option_price(db, {"connection_type": "Flange", 
+        ...                                 "flange_rating": "150#", 
+        ...                                 "flange_size": "2"})
+        >>> get_connection_option_price(db, {"connection_type": "Tri-Clamp",
+        ...                                 "triclamp_size": "1.5"})
+    """
     connection_type = specs.get("connection_type")
     if connection_type == "Flange":
         rating = specs.get("flange_rating")

@@ -1,5 +1,18 @@
 """
 Service for managing customers.
+
+This module provides a service layer for managing customers in Babbitt International's
+quoting system. It implements business logic for:
+
+- Customer creation and management
+- Customer search and retrieval
+- Customer data validation
+- Customer relationship tracking
+- Contact information management
+- Customer-specific pricing rules
+
+The service follows domain-driven design principles and separates business logic
+from data access, providing a clean interface for customer management operations.
 """
 from typing import List, Optional, Dict, Any
 
@@ -10,7 +23,49 @@ from src.utils.db_utils import add_and_commit, get_by_id, get_all, update_and_co
 
 
 class CustomerService:
-    """Service for managing customers."""
+    """
+    Service class for managing customers in the quoting system.
+    
+    This service provides comprehensive customer management functionality including
+    creating, retrieving, updating, and deleting customer records. It handles all
+    customer-related business logic and data validation.
+    
+    The service handles:
+    - Customer record management (CRUD operations)
+    - Customer search and filtering
+    - Contact information validation
+    - Address management
+    - Customer notes and metadata
+    - Customer relationship tracking
+    
+    The service is implemented using static methods for simplicity and statelessness,
+    making it easy to use across different parts of the application without
+    managing instance state.
+    
+    Example:
+        >>> db = SessionLocal()
+        >>> # Create a new customer
+        >>> customer = CustomerService.create_customer(
+        ...     db,
+        ...     name="Acme Industries",
+        ...     email="contact@acme.com",
+        ...     phone="555-0123"
+        ... )
+        >>> 
+        >>> # Retrieve and update customer
+        >>> found = CustomerService.get_customer(db, customer.id)
+        >>> updated = CustomerService.update_customer(
+        ...     db,
+        ...     customer.id,
+        ...     {"address": "123 Main St", "city": "Springfield"}
+        ... )
+        >>> 
+        >>> # Search for customers
+        >>> matches = CustomerService.search_customers(db, "Acme")
+        >>> 
+        >>> # List all customers
+        >>> all_customers = CustomerService.get_all_customers(db)
+    """
     
     @staticmethod
     def create_customer(

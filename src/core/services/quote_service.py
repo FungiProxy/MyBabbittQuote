@@ -1,5 +1,14 @@
 """
 Service for managing quotes and quote items.
+
+This module provides a service layer for managing quotes and quote-related operations
+in Babbitt International's quoting system. It supports:
+- Creating and updating quotes
+- Adding products and options to quotes
+- Managing quote statuses and line items
+- Calculating prices for quote items and options
+
+Follows domain-driven design and separates business logic from data access.
 """
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Tuple, Union
@@ -12,7 +21,19 @@ from src.utils.db_utils import add_and_commit, get_by_id, generate_quote_number
 
 
 class QuoteService:
-    """Service for managing quotes and quote-related operations."""
+    """
+    Service class for managing quotes and quote-related operations.
+    
+    Provides methods for creating quotes, adding products and options, updating
+    quote statuses, and handling all quote-related business logic.
+    
+    Example:
+        >>> db = SessionLocal()
+        >>> quote = QuoteService.create_quote(db, customer_id=1)
+        >>> item = QuoteService.add_product_to_quote(db, quote_id=quote.id, product_id=2)
+        >>> option = QuoteService.add_option_to_quote_item(db, quote_item_id=item.id, option_id=3)
+        >>> updated = QuoteService.update_quote_status(db, quote_id=quote.id, status="sent")
+    """
 
     @staticmethod
     def create_quote(

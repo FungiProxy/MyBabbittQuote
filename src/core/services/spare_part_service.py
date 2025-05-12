@@ -1,5 +1,13 @@
 """
 Service for managing spare parts.
+
+This module provides a service layer for managing spare parts in Babbitt International's
+quoting system. It supports:
+- Retrieving, searching, and categorizing spare parts
+- Filtering by product family or category
+- Handling spare part-related business logic
+
+Follows domain-driven design and separates business logic from data access.
 """
 from typing import List, Optional, Dict, Any
 
@@ -10,7 +18,21 @@ from src.utils.db_utils import get_by_id, get_all
 
 
 class SparePartService:
-    """Service for managing spare parts."""
+    """
+    Service class for managing spare parts.
+    
+    Provides methods for retrieving, searching, and categorizing spare parts,
+    including filtering by product family or category. Encapsulates all spare
+    part-related business logic.
+    
+    Example:
+        >>> db = SessionLocal()
+        >>> all_parts = SparePartService.get_all_spare_parts(db)
+        >>> electronics = SparePartService.get_spare_parts_by_category(db, category="electronics")
+        >>> by_family = SparePartService.get_spare_parts_by_family(db, product_family_name="LS2000")
+        >>> part = SparePartService.get_spare_part_by_part_number(db, part_number="SP-1001")
+        >>> categories = SparePartService.get_spare_part_categories(db)
+    """
     
     @staticmethod
     def get_all_spare_parts(db: Session) -> List[SparePart]:

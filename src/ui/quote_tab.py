@@ -1,5 +1,15 @@
 """
-Quote Summary Tab for the Babbitt Quote Generator
+Quote Summary Tab for the Babbitt Quote Generator.
+
+This module defines the quote management interface for the quote generator.
+It provides a comprehensive view of the quote being built, including:
+- Product configuration summary
+- Quote items list (products and spare parts)
+- Pricing calculations and display
+- Customer information collection
+
+The tab serves as the central location for reviewing and finalizing quotes
+before they are saved or exported.
 """
 
 from PySide6.QtWidgets import (
@@ -16,12 +26,51 @@ from src.core.models.connection_option import ConnectionOption
 
 
 class QuoteTab(QWidget):
-    """Quote summary tab for the quote generator."""
+    """
+    Quote management tab for the quote generator.
+    
+    This tab provides a comprehensive interface for managing quotes, including
+    product configuration review, pricing calculations, and customer information
+    collection. It maintains the current state of the quote and updates
+    automatically as changes are made in other tabs.
+    
+    The tab is organized into sections:
+    1. Quote Summary: Shows selected product and configuration
+    2. Quote Items: Lists all products and spare parts in the quote
+    3. Pricing: Displays calculated prices and totals
+    4. Customer Information: Collects customer details
+    
+    Attributes:
+        product_info (dict): Current product information
+        specs (dict): Current product specifications
+        pricing (dict): Current pricing calculations
+        product_summary (QLabel): Label showing selected product
+        specs_table (QTableWidget): Table showing product configuration
+        items_table (QTableWidget): Table showing quote items
+        status_label (QLabel): Label for status messages
+        base_price_label (QLabel): Label showing base price
+        options_price_label (QLabel): Label showing options price
+        total_price_label (QLabel): Label showing total price
+        customer_name (QLineEdit): Input for customer name
+        contact_name (QLineEdit): Input for contact person
+        email (QLineEdit): Input for email address
+        phone (QLineEdit): Input for phone number
+        notes (QTextEdit): Input for additional notes
+    
+    Signals:
+        customer_updated (dict): Emitted when customer information changes
+    """
     
     # Signals
     customer_updated = Signal(dict)  # customer information dictionary
     
     def __init__(self, parent=None):
+        """
+        Initialize the QuoteTab.
+        
+        Args:
+            parent (QWidget, optional): Parent widget. Defaults to None.
+        """
         super().__init__(parent)
         self.init_ui()
         
@@ -35,7 +84,15 @@ class QuoteTab(QWidget):
         }
     
     def init_ui(self):
-        """Initialize the UI components."""
+        """
+        Initialize the UI components.
+        
+        Sets up the tab's layout with four main sections:
+        1. Quote Summary: Product and configuration details
+        2. Quote Items: Table of products and spare parts
+        3. Pricing: Price breakdown and totals
+        4. Customer Information: Form for customer details
+        """
         # Main layout
         main_layout = QVBoxLayout(self)
         
@@ -136,7 +193,17 @@ class QuoteTab(QWidget):
         main_layout.addItem(QSpacerItem(20, 40, QSizePolicy.Minimum, QSizePolicy.Expanding))
     
     def update_product_info(self, product_info):
-        """Update product information."""
+        """
+        Update the product information display.
+        
+        Updates the product summary section with new product information
+        and triggers a pricing update.
+        
+        Args:
+            product_info (dict): Dictionary containing product information:
+                - model (str): Product model number
+                - application (str): Product application
+        """
         self.product_info = product_info
         
         # Update product summary label
@@ -144,18 +211,25 @@ class QuoteTab(QWidget):
         application = product_info.get("application", "")
         
         if model:
-            # Use a standard font for the label
             self.product_summary.setFont(QFont("Arial", 10))
             self.product_summary.setText(f"<b>{model}</b><br>Application: {application}")
         else:
             self.product_summary.setFont(QFont("Arial", 10))
             self.product_summary.setText("No product selected")
         
-        # Update pricing (this would normally be calculated by your pricing module)
+        # Update pricing
         self.update_pricing()
     
     def update_specifications(self, specs):
-        """Update specifications summary."""
+        """
+        Update the specifications display.
+        
+        Updates the specifications table with new configuration information,
+        organizing specs into logical categories for better readability.
+        
+        Args:
+            specs (dict): Dictionary containing product specifications
+        """
         self.specs = specs
         
         # Clear existing specs
@@ -195,18 +269,22 @@ class QuoteTab(QWidget):
                     # Add to table
                     self._add_spec_row(display_name, display_value)
         
-        # Update pricing (this would normally be calculated by your pricing module)
+        # Update pricing
         self.update_pricing()
     
     def _add_category_row(self, category_name):
-        """Add a category header row to the specifications table."""
+        """
+        Add a category header row to the specifications table.
+        
+        Args:
+            category_name (str): Name of the category to add
+        """
         row = self.specs_table.rowCount()
         self.specs_table.insertRow(row)
         
         category_item = QTableWidgetItem(category_name)
         category_item.setBackground(Qt.lightGray)
         
-        # Use standard font to avoid DirectWrite font issues
         font = QFont("Arial", 9)
         font.setBold(True)
         category_item.setFont(font)
@@ -216,7 +294,13 @@ class QuoteTab(QWidget):
         self.specs_table.setSpan(row, 0, 1, 2)
     
     def _add_spec_row(self, name, value):
-        """Add a specification row to the table."""
+        """
+        Add a specification row to the specifications table.
+        
+        Args:
+            name (str): Name of the specification
+            value (str): Value of the specification
+        """
         row = self.specs_table.rowCount()
         self.specs_table.insertRow(row)
         
@@ -224,7 +308,6 @@ class QuoteTab(QWidget):
         name_item = QTableWidgetItem("    " + name)
         value_item = QTableWidgetItem(value)
         
-        # Use standard font to avoid DirectWrite font issues
         font = QFont("Arial", 9)
         name_item.setFont(font)
         value_item.setFont(font)
@@ -233,10 +316,14 @@ class QuoteTab(QWidget):
         self.specs_table.setItem(row, 1, value_item)
     
     def update_pricing(self):
-        """Update pricing based on product and specifications."""
-        # This would normally call your pricing.py module
-        # For now, we'll use placeholder calculations
+        """
+        Update pricing calculations.
         
+        Calculates and updates the display of base price, options price,
+        and total price based on the current product and specifications.
+        This is currently using placeholder calculations and would normally
+        integrate with a proper pricing module.
+        """
         # Base price based on product model
         base_price = 0.0
         model = self.product_info.get("model", "")

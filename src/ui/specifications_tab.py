@@ -1,5 +1,17 @@
 """
-Specifications Tab for the Babbitt Quote Generator
+Specifications Tab for the Babbitt Quote Generator.
+
+This module defines the specifications configuration interface for the quote generator.
+It provides a dynamic form for configuring product specifications based on the
+selected product model, including:
+- Voltage selection
+- Material options
+- Probe configurations
+- Connection types and sizes
+- Additional options and features
+
+The specifications are organized into logical sections and automatically updated
+based on product selection and database-driven options.
 """
 
 from PySide6.QtWidgets import (
@@ -15,13 +27,45 @@ from src.core.services.product_service import ProductService
 
 
 class SpecificationsTab(QWidget):
-    """Specifications tab for the quote generator."""
+    """
+    Specifications configuration tab for the quote generator.
+    
+    This tab provides a dynamic form interface for configuring product specifications.
+    It updates its available options based on the selected product and retrieves
+    valid configurations from the database.
+    
+    The tab is organized into sections including:
+    - Voltage selection
+    - Material options
+    - Probe configuration
+    - Connection types
+    - Additional features
+    
+    Attributes:
+        current_product (dict): Currently selected product information
+        specs_widgets (dict): References to specification input widgets
+        product_service (ProductService): Service for product data access
+        scroll (QScrollArea): Scrollable container for specifications
+        scroll_content (QWidget): Container for specification sections
+        specs_layout (QVBoxLayout): Layout manager for specifications
+        add_to_quote_button (QPushButton): Button to add configured product to quote
+    
+    Signals:
+        specs_updated (dict): Emitted when specifications are modified
+        add_to_quote (dict): Emitted when current configuration should be added to quote
+    """
     
     # Signals
     specs_updated = Signal(dict)  # specifications dictionary
     add_to_quote = Signal(dict)  # Signal to add current specs to quote
     
     def __init__(self, parent=None):
+        """
+        Initialize the SpecificationsTab.
+        
+        Args:
+            parent (QWidget, optional): Parent widget. Defaults to None.
+        """
         super().__init__(parent)
         self.init_ui()
         self.current_product = None
@@ -29,7 +73,12 @@ class SpecificationsTab(QWidget):
         self.product_service = ProductService()
         
     def init_ui(self):
-        """Initialize the UI components."""
+        """
+        Initialize the UI components.
+        
+        Sets up the scrollable specifications form and the "Add to Quote" button.
+        Initially displays a placeholder message until a product is selected.
+        """
         # Main layout
         main_layout = QVBoxLayout(self)
         
@@ -69,7 +118,16 @@ class SpecificationsTab(QWidget):
         main_layout.addWidget(self.add_to_quote_button)
     
     def update_for_product(self, category, model):
-        """Update specifications based on selected product."""
+        """
+        Update specifications form for a newly selected product.
+        
+        Clears existing specifications and rebuilds the form with
+        options appropriate for the selected product category and model.
+        
+        Args:
+            category (str): Product category (e.g., "Level Switch")
+            model (str): Product model number
+        """
         self.current_product = {"category": category, "model": model}
         
         # Clear existing specs
@@ -85,8 +143,7 @@ class SpecificationsTab(QWidget):
         header.setAlignment(Qt.AlignCenter)
         self.specs_layout.addWidget(header)
         
-        # We'll use a common format for all products with the agreed order
-        # Some sections might be product-specific
+        # Add specification sections in standard order
         self.add_voltage_section()
         self.add_material_section()
         self.add_probe_length_section()
@@ -102,7 +159,7 @@ class SpecificationsTab(QWidget):
             QSpacerItem(20, 40, QSizePolicy.Minimum, QSizePolicy.Expanding)
         )
         
-        # Connect signals for all widgets
+        # Connect change signals for all widgets
         for widget_name, widget in self.specs_widgets.items():
             if isinstance(widget, QComboBox):
                 widget.currentIndexChanged.connect(self.on_specs_changed)
@@ -117,7 +174,12 @@ class SpecificationsTab(QWidget):
         self.add_to_quote_button.setEnabled(True)
     
     def add_voltage_section(self):
-        """Add voltage selection section."""
+        """
+        Add voltage selection section to the specifications form.
+        
+        Creates a group box with voltage options appropriate for the
+        current product, fetching available options from the database.
+        """
         group = QGroupBox("Voltage")
         layout = QFormLayout()
         
@@ -125,10 +187,8 @@ class SpecificationsTab(QWidget):
         
         # Get available voltages for the current product family
         if self.current_product and "model" in self.current_product:
-            # Extract the base product family (e.g., "LS2000" from "LS2000 - General Purpose")
             product_family = self.current_product["model"].split()[0]
             
-            # Get available voltages from the database
             db = SessionLocal()
             try:
                 available_voltages = self.product_service.get_available_voltages(db, product_family)
@@ -143,18 +203,20 @@ class SpecificationsTab(QWidget):
         self.specs_layout.addWidget(group)
     
     def add_material_section(self):
-        """Add material selection section."""
+        """
+        Add material selection section to the specifications form.
+        
+        Creates a group box with material options appropriate for the
+        current product, fetching available options from the database.
+        """
         group = QGroupBox("Material")
         layout = QFormLayout()
         
         material = QComboBox()
         
-        # Get available materials for the current product family
         if self.current_product and "model" in self.current_product:
-            # Extract the base product family (e.g., "LS2000" from "LS2000 - General Purpose")
             product_family = self.current_product["model"].split()[0]
             
-            # Get available materials from the database
             db = SessionLocal()
             try:
                 available_materials = self.product_service.get_available_materials_for_product(db, product_family)
@@ -169,8 +231,12 @@ class SpecificationsTab(QWidget):
         self.specs_layout.addWidget(group)
     
     def add_probe_length_section(self):
-        """Add probe length section."""
-        # Skip for products without probes
+        """
+        Add probe length configuration section to the specifications form.
+        
+        Creates a group box with probe length options. Only added for
+        products that have probes (skipped for emission monitoring products).
+        """
         if "Emissions" in self.current_product.get("category", ""):
             return
             
@@ -188,7 +254,17 @@ class SpecificationsTab(QWidget):
         self.specs_layout.addWidget(group)
     
     def add_connection_section(self):
-        """Add detailed connection section for flange and Tri-Clamp options."""
+        """
+        Add connection configuration section to the specifications form.
+        
+        Creates a group box with connection options including:
+        - Connection type (NPT, Flange, Tri-Clamp)
+        - Size options for each connection type
+        - Flange ratings when applicable
+        
+        The visible options update dynamically based on the selected
+        connection type.
+        """
         group = QGroupBox("Connection")
         layout = QFormLayout()
 
@@ -245,7 +321,12 @@ class SpecificationsTab(QWidget):
         self.specs_layout.addWidget(group)
     
     def add_exotic_metals_section(self):
-        """Add exotic metals section."""
+        """
+        Add exotic metals selection section to the specifications form.
+        
+        Creates a group box for selecting exotic metal options when
+        available for the current product.
+        """
         group = QGroupBox("Exotic Metals")
         layout = QFormLayout()
         
